@@ -40,6 +40,22 @@
     </figure>`;
   }
 
+  function money(n) {
+    return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+  }
+
+  function priceCard(kind, p, t) {
+    const fill = (s) => s.replace("{m}", p.minutes).replace("{n}", p.perWeek).replace("{s}", p.size);
+    const points = [fill(t["p.lessons"]), fill(t["p.week"]), kind === "group" ? fill(t["p.size"]) : t["p.solo"]];
+    return `<article class="price${kind === "individual" ? " featured" : ""}">
+      <h3>${esc(t["p." + kind])}</h3>
+      <div class="amount"><b>${money(p.uzs)}</b> <span>${esc(t["p.currency"])}</span></div>
+      <div class="eur">${money(p.eur)}&nbsp;€ · ${esc(t["p.per"])}</div>
+      <ul>${points.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>
+      <a class="btn ${kind === "individual" ? "primary" : "ghost"}" href="${esc(D.links.bot)}" target="_blank" rel="noopener">${esc(t["cta.trial"])}</a>
+    </article>`;
+  }
+
   function render(lang) {
     const t = window.I18N[lang];
     document.documentElement.lang = lang;
@@ -48,6 +64,9 @@
       if (v != null) el.textContent = v;
     });
     document.querySelectorAll("[data-lang]").forEach((b) => b.classList.toggle("on", b.dataset.lang === lang));
+
+    document.querySelectorAll("[data-val]").forEach((el) => (el.textContent = D.experience[el.dataset.val]));
+    document.getElementById("pricesGrid").innerHTML = Object.entries(D.prices).map(([k, p]) => priceCard(k, p, t)).join("");
 
     const results = D.results || [];
     const reviews = D.reviews || [];

@@ -9,6 +9,16 @@ window.DEUS = {
     teacher: "https://t.me/azuziz",
   },
 
+  // Numbers shown under the headline.
+  experience: { teachingYears: 10, germanyYears: 5 },
+
+  // Prices for a package of 12 lessons. Change the numbers here; the page updates by itself.
+  // uzs = so'm, eur = euro, minutes = length of one lesson, perWeek = lessons per week.
+  prices: {
+    individual: { uzs: 3000000, eur: 220, minutes: 60, perWeek: 3 },
+    group: { uzs: 2000000, eur: 160, minutes: 90, perWeek: 3, size: "3–5" },
+  },
+
   // Student results - add only with the student's permission. Example:
   // {
   //   name: "Maksim K.",               // first name + surname initial

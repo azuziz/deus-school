@@ -1,5 +1,18 @@
 window.I18N = {
   ru: {
+    "stat.teach": "лет преподавания",
+    "stat.de": "лет опыта в Германии",
+    "nav.prices": "Цены",
+    "prices.title": "Цены",
+    "prices.lead": "Оплата за 12 занятий — это 4 недели при трёх занятиях в неделю.",
+    "p.individual": "Индивидуально",
+    "p.group": "Мини-группа",
+    "p.currency": "сум",
+    "p.lessons": "12 занятий по {m} мин",
+    "p.week": "{n} раза в неделю",
+    "p.solo": "Только вы и преподаватель",
+    "p.size": "{s} студентов в группе",
+    "p.per": "за 12 занятий",
     "cta.services": "Наши услуги",
     "chat.hello": "👋 Привет, меня зовут София — ваша личная AI-помощница в школе DEUS! Я помогу вам записаться на занятия, попрактиковать немецкий и отвечу на вопросы.",
     "chat.btn.book": "📅 Записаться на урок",
@@ -15,7 +28,7 @@ window.I18N = {
 
     "hero.kicker": "Онлайн-школа немецкого языка",
     "hero.title": "Немецкий онлайн — от первого урока до учёбы в Германии",
-    "hero.lead": "Курсы A1–C1, подготовка к экзаменам, документы для учёбы и визы, математика на немецком для Studienkolleg. Преподаватель живёт и работает в Германии.",
+    "hero.lead": "Курсы A1–C1, подготовка к экзаменам, документы для учёбы и визы, математика на немецком для Studienkolleg.",
     "hero.exams": "Готовим к экзаменам",
 
     "services.title": "Чем мы помогаем",
@@ -64,6 +77,19 @@ window.I18N = {
   },
 
   uz: {
+    "stat.teach": "yillik o'qituvchilik tajribasi",
+    "stat.de": "yil Germaniyadagi tajriba",
+    "nav.prices": "Narxlar",
+    "prices.title": "Narxlar",
+    "prices.lead": "To'lov 12 ta dars uchun — haftasiga uch marta, ya'ni 4 hafta.",
+    "p.individual": "Individual",
+    "p.group": "Mini-guruh",
+    "p.currency": "so'm",
+    "p.lessons": "12 ta dars, har biri {m} daqiqa",
+    "p.week": "Haftasiga {n} marta",
+    "p.solo": "Faqat siz va o'qituvchi",
+    "p.size": "Guruhda {s} talaba",
+    "p.per": "12 ta dars uchun",
     "cta.services": "Xizmatlarimiz",
     "chat.hello": "👋 Salom, men Sofiya — DEUS maktabidagi shaxsiy AI-yordamchingizman! Darslarga yozilishda, nemis tilini mashq qilishda yordam beraman va savollaringizga javob beraman.",
     "chat.btn.book": "📅 Uchrashuvga yozilish",
@@ -79,7 +105,7 @@ window.I18N = {
 
     "hero.kicker": "Nemis tili onlayn maktabi",
     "hero.title": "Nemis tili onlayn — birinchi darsdan Germaniyada o'qishgacha",
-    "hero.lead": "A1–C1 kurslari, imtihonlarga tayyorgarlik, o'qish va viza uchun hujjatlar, Studienkolleg uchun nemis tilida matematika. O'qituvchi Germaniyada yashaydi va ishlaydi.",
+    "hero.lead": "A1–C1 kurslari, imtihonlarga tayyorgarlik, o'qish va viza uchun hujjatlar, Studienkolleg uchun nemis tilida matematika.",
     "hero.exams": "Imtihonlarga tayyorlaymiz",
 
     "services.title": "Nimalarda yordam beramiz",
@@ -128,6 +154,19 @@ window.I18N = {
   },
 
   en: {
+    "stat.teach": "years of teaching",
+    "stat.de": "years of experience in Germany",
+    "nav.prices": "Prices",
+    "prices.title": "Prices",
+    "prices.lead": "You pay for 12 lessons — 4 weeks at three lessons a week.",
+    "p.individual": "Individual",
+    "p.group": "Mini group",
+    "p.currency": "UZS",
+    "p.lessons": "12 lessons, {m} min each",
+    "p.week": "{n} times a week",
+    "p.solo": "Just you and the teacher",
+    "p.size": "{s} students per group",
+    "p.per": "for 12 lessons",
     "cta.services": "Our services",
     "chat.hello": "👋 Hi, I'm Sophie - your personal AI assistant here at DEUS! I'll help you book classes, practice German, and answer any questions along the way.",
     "chat.btn.book": "📅 Book an appointment",
@@ -143,7 +182,7 @@ window.I18N = {
 
     "hero.kicker": "Online German school",
     "hero.title": "German online — from your first lesson to studying in Germany",
-    "hero.lead": "A1–C1 courses, exam preparation, documents for study and visa, maths in German for Studienkolleg. Your teacher lives and works in Germany.",
+    "hero.lead": "A1–C1 courses, exam preparation, documents for study and visa, maths in German for Studienkolleg.",
     "hero.exams": "We prepare you for",
 
     "services.title": "What we help with",
