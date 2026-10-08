@@ -19,16 +19,17 @@
 
   function resultCard(r, t) {
     const rows = r.scores
-      .map(([label, got, max]) => {
+      .map(([label, got, max, shown]) => {
         const pct = Math.round((got / max) * 100);
-        return `<div class="row"><span>${esc(label)}</span><span class="bar"><i style="width:${pct}%"></i></span><b>${got}/${max}</b></div>`;
+        return `<div class="row"><span>${esc(label)}</span><span class="bar"><i style="width:${pct}%"></i></span><b>${esc(shown || `${got}/${max}`)}</b></div>`;
       })
       .join("");
+    const extra = r.extra ? `<div class="extra">${esc(r.extra)}</div>` : "";
     const months = r.months ? `<span class="months">${esc(t["results.months"].replace("{n}", r.months))}</span>` : "";
     const grade = r.grade ? `<span class="grade">${esc(r.grade)}</span>` : "";
     return `<article class="res">
       <div class="res-top"><span class="lvl">${esc(r.level)}</span><div><div class="exam">${esc(r.exam)}</div><div class="who">${esc(r.name)} · ${esc(r.date)}</div></div>${grade}</div>
-      <div class="scores">${rows}</div>${months}
+      <div class="scores">${rows}</div>${extra}${months}
     </article>`;
   }
 

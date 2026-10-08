@@ -108,7 +108,7 @@ svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width:
 .steps, .reviews { margin-top: 32px; }
 .grid { display: grid; gap: 16px; }
 @media (min-width: 640px) { .grid { grid-template-columns: repeat(2, 1fr); } }
-@media (min-width: 980px) { .services, .reviews { grid-template-columns: repeat(3, 1fr); } }
+@media (min-width: 980px) { .services, .reviews, .results { grid-template-columns: repeat(3, 1fr); } }
 
 .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 26px; box-shadow: var(--shadow); }
 .card h3 { margin: 18px 0 8px; }
@@ -157,6 +157,7 @@ svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width:
 .row b { font-variant-numeric: tabular-nums; font-size: 13px; }
 .bar { height: 6px; border-radius: 3px; background: var(--bg-alt); overflow: hidden; }
 .bar i { display: block; height: 100%; background: var(--gold); border-radius: 3px; }
+.extra { margin-top: 14px; font-size: 13px; font-weight: 600; color: var(--muted); }
 .months { display: inline-block; margin-top: 16px; font-size: 13px; font-weight: 700; color: var(--red); }
 
 /* reviews */

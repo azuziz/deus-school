@@ -29,7 +29,52 @@ window.DEUS = {
   //   grade: "Gut",                    // optional
   //   scores: [["Lesen", 73, 100], ["Hören", 67, 100], ["Schreiben", 66, 100], ["Sprechen", 62, 100]],
   // },
-  results: [],
+  // A score can have a 4th value: the text to show instead of "got/max" (used for TestDaF levels).
+  results: [
+    {
+      name: "Dinara A.",
+      exam: "TestDaF",
+      level: "C1",
+      date: "06.2021",
+      months: null,
+      scores: [["Lesen", 4, 5, "TDN 4"], ["Hören", 4, 5, "TDN 4"], ["Schreiben", 4, 5, "TDN 4"], ["Sprechen", 4, 5, "TDN 4"]],
+    },
+    {
+      name: "Parisa M.",
+      exam: "Goethe-Zertifikat",
+      level: "B2",
+      date: "03.2022",
+      months: null,
+      scores: [["Lesen", 83, 100], ["Hören", 70, 100], ["Schreiben", 63, 100], ["Sprechen", 87, 100]],
+      extra: "+ TestDaF 05.2022: Sprechen TDN 5",
+    },
+    {
+      name: "Narmina Y.",
+      exam: "telc Deutsch",
+      level: "B2",
+      date: "08.2026",
+      months: null,
+      grade: "Gut",
+      scores: [["Schriftlich", 179, 225], ["Mündlich", 64, 75], ["Summe", 243, 300]],
+    },
+    {
+      name: "Saidabrorkhon S.",
+      exam: "Goethe-Zertifikat",
+      level: "B1",
+      date: "11.2022",
+      months: null,
+      scores: [["Lesen", 70, 100], ["Hören", 80, 100], ["Schreiben", 85, 100], ["Sprechen", 83, 100]],
+    },
+    {
+      name: "Kholniso K.",
+      exam: "Goethe-Zertifikat",
+      level: "A1",
+      date: "08.2021",
+      months: null,
+      grade: "Gut",
+      scores: [["Hören", 14.94, 25], ["Lesen", 24.9, 25], ["Schreiben", 24.9, 25], ["Sprechen", 21.58, 25], ["Gesamt", 86, 100]],
+    },
+  ],
 
   // Student reviews. Example:
   // { name: "Narmina Y.", level: "A2 → B2", text: { ru: "...", uz: "...", en: "..." } },
