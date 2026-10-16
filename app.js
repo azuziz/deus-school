@@ -1,6 +1,7 @@
 (function () {
   const D = window.DEUS;
-  const LANGS = ["uz", "ru", "en"];
+  const LANGS = ["uz", "ru", "en", "de"];
+  const calm = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   function pickLang() {
     const fromUrl = new URLSearchParams(location.search).get("lang");
@@ -35,9 +36,14 @@
 
   function reviewCard(r, lang, t) {
     const badge = r.sample ? `<span class="sample">${esc(t["reviews.sample"])}</span>` : "";
+    const shownLang = r.text[lang] ? lang : r.text.ru ? "ru" : Object.keys(r.text)[0];
+    const meta = r.months ? t["reviews.meta"].replace("{level}", r.level).replace("{n}", r.months) : r.level || "";
+    const note = r.original && shownLang !== r.original && t["lang." + r.original]
+      ? `<small class="tr">${esc(t["reviews.translated"].replace("{from}", t["lang." + r.original]))}</small>`
+      : "";
     return `<figure class="rev${r.sample ? " is-sample" : ""}">${badge}
-      <blockquote>${esc(r.text[lang] || r.text.ru || Object.values(r.text)[0] || "")}</blockquote>
-      <figcaption><b>${esc(r.name)}</b><span>${esc(r.level || "")}</span></figcaption>
+      <blockquote>${esc(r.text[shownLang] || "")}</blockquote>
+      <figcaption><b>${esc(r.name)}</b><span>${esc(meta)}</span>${note}</figcaption>
     </figure>`;
   }
 
@@ -77,7 +83,73 @@
     document.getElementById("results").hidden = !has.results;
     document.getElementById("reviews").hidden = !has.reviews;
     document.querySelectorAll("[data-needs]").forEach((el) => (el.hidden = !has[el.dataset.needs]));
+    motion.mark();
   }
+
+  // --- Motion: everything here is optional decoration; without JS or with reduced motion the page is static.
+  const motion = (function () {
+    let first = true;
+    const io = "IntersectionObserver" in window && !calm
+      ? new IntersectionObserver((entries) => entries.forEach((e) => {
+          if (!e.isIntersecting) return;
+          e.target.classList.add("in");
+          io.unobserve(e.target);
+          if (e.target.dataset.count != null) countUp(e.target);
+        }), { threshold: 0.15, rootMargin: "0px 0px -40px 0px" })
+      : null;
+
+    const SELECTOR = ".sec h2, .sec-lead, .card, .steps li, .price, .res, .rev, .tg-card, .final-in > *";
+
+    function mark() {
+      const els = document.querySelectorAll(SELECTOR);
+      els.forEach((el) => {
+        if (el.classList.contains("reveal")) return;
+        el.classList.add("reveal");
+        // stagger cards that sit next to each other in a grid
+        const i = Array.prototype.indexOf.call(el.parentNode.children, el);
+        el.style.transitionDelay = el.parentNode.classList.contains("grid") || el.parentNode.classList.contains("steps") ? `${(i % 3) * 90}ms` : "";
+        if (io && first) io.observe(el);
+        else el.classList.add("in");
+      });
+      first = false;
+    }
+
+    function countUp(el) {
+      const end = Number(el.dataset.count);
+      const t0 = performance.now();
+      const step = (now) => {
+        const k = Math.min(1, (now - t0) / 1200);
+        el.textContent = Math.round(end * (1 - Math.pow(1 - k, 3)));
+        if (k < 1) requestAnimationFrame(step);
+      };
+      requestAnimationFrame(step);
+    }
+
+    function stats() {
+      document.querySelectorAll("[data-val]").forEach((el) => {
+        if (!io) return;
+        el.dataset.count = el.textContent;
+        el.textContent = "0";
+        io.observe(el);
+      });
+    }
+
+    function hero() {
+      const levels = document.querySelectorAll(".levels span");
+      const chat = document.querySelector(".chat");
+      if (calm || !chat) return;
+      chat.classList.add("typing");
+      levels.forEach((l) => l.classList.remove("on"));
+      levels.forEach((l, i) => setTimeout(() => {
+        levels.forEach((x) => x.classList.remove("on"));
+        l.classList.add("on");
+      }, 250 + i * 350));
+      setTimeout(() => levels[3] && (levels.forEach((x) => x.classList.remove("on")), levels[3].classList.add("on")), 250 + levels.length * 350);
+      setTimeout(() => chat.classList.remove("typing"), 1400);
+    }
+
+    return { mark, stats, hero };
+  })();
 
   document.querySelectorAll("[data-link]").forEach((a) => (a.href = D.links[a.dataset.link]));
   document.getElementById("year").textContent = new Date().getFullYear();
@@ -89,4 +161,6 @@
   );
 
   render(pickLang());
+  motion.stats();
+  motion.hero();
 })();

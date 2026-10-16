@@ -76,8 +76,21 @@ window.DEUS = {
     },
   ],
 
-  // Student reviews. Example:
-  // { name: "Narmina Y.", level: "A2 → B2", text: { ru: "...", uz: "...", en: "..." } },
-  // If a review exists in one language only, the other languages show the Russian text (or the first one given).
-  reviews: [],
+  // Student reviews. level + months show as "C1 in 8 months" (months can be left out).
+  // original: the language the student wrote in - the other languages get a "translated from" note.
+  // If a language is missing, the Russian text (or the first one given) is shown.
+  reviews: [
+    {
+      name: "Nastya K.",
+      level: "C1",
+      months: 8,
+      original: "de",
+      text: {
+        de: "Ich wollte auch Ihnen für alles danken! Sie haben sehr viel Zeit und Mühe für mein Lernen ausgegeben, und eigentlich bin ich noch überrascht, dass ich nur 8 Monate gebraucht habe, um C1 zu bekommen. Ohne Ihre Arbeit wäre es ganz anders und deutlich schwieriger. Ich würde Ihnen immer wieder als den besten Deutschlehrer empfehlen.",
+        ru: "Хочу поблагодарить вас за всё! Вы потратили очень много времени и сил на моё обучение, и я до сих пор удивляюсь, что мне понадобилось всего 8 месяцев, чтобы получить C1. Без вашей работы всё было бы совсем по-другому и намного сложнее. Я всегда буду рекомендовать вас как лучшего преподавателя немецкого.",
+        uz: "Sizga hamma narsa uchun rahmat aytmoqchiman! O'qishim uchun juda ko'p vaqt va kuch sarfladingiz. Haligacha hayronman: C1 olishim uchun atigi 8 oy kerak bo'ldi. Sizning mehnatingizsiz hammasi butunlay boshqacha va ancha qiyin bo'lardi. Sizni har doim eng yaxshi nemis tili o'qituvchisi sifatida tavsiya qilaman.",
+        en: "I also wanted to thank you for everything! You put so much time and effort into my learning, and honestly I'm still surprised it only took me 8 months to get C1. Without your work it would have been completely different and much harder. I would recommend you again and again as the best German teacher.",
+      },
+    },
+  ],
 };
