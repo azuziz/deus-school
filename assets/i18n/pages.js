@@ -62,6 +62,8 @@ Object.assign(window.T, {
   "intl.f2.d": { en: "Goethe, telc, ÖSD and TestDaF are accepted worldwide.", ru: "Goethe, telc, ÖSD и TestDaF принимают по всему миру.", uz: "Goethe, telc, ÖSD va TestDaF butun dunyoda qabul qilinadi.", de: "Goethe, telc, ÖSD und TestDaF werden weltweit anerkannt." },
   "intl.f3.t": { en: "Speaking clubs", ru: "Разговорные клубы", uz: "Suhbat klublari", de: "Sprachclubs" },
   "intl.f3.d": { en: "Practise with learners from other countries and guests from Germany.", ru: "Практика со студентами из других стран и гостями из Германии.", uz: "Boshqa mamlakatlar talabalari va Germaniyadan kelgan mehmonlar bilan mashq.", de: "Übe mit Lernenden aus anderen Ländern und Gästen aus Deutschland." },
+  "intl.from": { en: "countries our students come from", ru: "стран — откуда наши студенты", uz: "mamlakatdan kelgan talabalarimiz", de: "Länder, aus denen unsere Lernenden kommen" },
+  "intl.fromLead": { en: "Uzbekistan and beyond — the same lessons, the same results.", ru: "Узбекистан и не только — те же уроки, те же результаты.", uz: "O'zbekiston va boshqa mamlakatlar — o'sha darslar, o'sha natijalar.", de: "Usbekistan und darüber hinaus — gleicher Unterricht, gleiche Ergebnisse." },
   "intl.results": { en: "Results of international students", ru: "Результаты иностранных студентов", uz: "Xorijlik talabalar natijalari", de: "Ergebnisse internationaler Lernender" },
   "intl.soon": { en: "Results from our international students will appear here soon.", ru: "Скоро здесь появятся результаты наших иностранных студентов.", uz: "Tez orada bu yerda xorijlik talabalarimiz natijalari paydo bo'ladi.", de: "Hier erscheinen bald die Ergebnisse unserer internationalen Lernenden." },
 

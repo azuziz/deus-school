@@ -20,6 +20,15 @@ Object.assign(window.T, {
 
   "stat.teach": { en: "years of teaching", ru: "лет преподавания", uz: "yillik o'qituvchilik tajribasi", de: "Jahre Unterrichtserfahrung" },
   "stat.de": { en: "years of experience in Germany", ru: "лет опыта в Германии", uz: "yil Germaniyadagi tajriba", de: "Jahre Erfahrung in Deutschland" },
+  "stat.countries": { en: "countries our students come from", ru: "стран, откуда наши студенты", uz: "mamlakatdan kelgan talabalar", de: "Länder, aus denen unsere Lernenden kommen" },
+
+  "country.uz": { en: "Uzbekistan", ru: "Узбекистан", uz: "O'zbekiston", de: "Usbekistan" },
+  "country.ua": { en: "Ukraine", ru: "Украина", uz: "Ukraina", de: "Ukraine" },
+  "country.kz": { en: "Kazakhstan", ru: "Казахстан", uz: "Qozog'iston", de: "Kasachstan" },
+  "country.tr": { en: "Türkiye", ru: "Турция", uz: "Turkiya", de: "Türkei" },
+  "country.ps": { en: "Palestine", ru: "Палестина", uz: "Falastin", de: "Palästina" },
+  "country.ru": { en: "Russia", ru: "Россия", uz: "Rossiya", de: "Russland" },
+  "country.ng": { en: "Nigeria", ru: "Нигерия", uz: "Nigeriya", de: "Nigeria" },
 
   // the three course formats
   "course.klasse.name": { en: "Klasse", ru: "Klasse", uz: "Klasse", de: "Klasse" },

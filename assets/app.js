@@ -40,6 +40,7 @@
   function num(n) {
     return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, " ");
   }
+  const dec = (n) => (lang === "en" ? String(n) : String(n).replace(".", ","));
   const som = (n) => `${num(n)} ${t("cur.som")}`;
   const eur = (n) => (lang === "en" ? `€${num(n)}` : `${num(n)} €`);
   const toSom = (e) => Math.ceil((e * D.eurRate) / 100000) * 100000;
@@ -116,17 +117,17 @@
       })
       .join("");
     const extra = r.extra ? `<div class="extra">${esc(r.extra)}</div>` : "";
-    const months = r.months ? `<span class="months">${esc(t("results.months", { n: r.months }))}</span>` : "";
+    const months = r.months ? `<span class="months">${esc(t("results.months", { n: dec(r.months) }))}</span>` : "";
     const grade = r.grade ? `<span class="grade">${esc(r.grade)}</span>` : "";
     return `<article class="res">
-      <div class="res-top"><span class="lvl">${esc(r.level)}</span><div><div class="exam">${esc(r.exam)}</div><div class="who">${esc(r.name)} · ${esc(r.date)}</div></div>${grade}</div>
+      <div class="res-top"><span class="lvl">${esc(r.level)}</span><div><div class="exam">${esc(r.exam)}</div><div class="who">${esc(r.name)}${r.date ? ` · ${esc(r.date)}` : ""}</div></div>${grade}</div>
       <div class="scores">${rows}</div>${extra}${months}
     </article>`;
   }
 
   function reviewCard(r) {
     const shown = r.text[lang] ? lang : r.text.en ? "en" : Object.keys(r.text)[0];
-    const meta = r.months ? t("reviews.meta", { level: r.level, n: r.months }) : r.level || "";
+    const meta = r.months ? t("reviews.meta", { level: r.level, n: dec(r.months) }) : r.level || "";
     const note = r.original && shown !== r.original ? `<small class="tr">${esc(t("reviews.translated", { from: t("lang." + r.original) }))}</small>` : "";
     return `<figure class="rev">
       <blockquote>${esc(r.text[shown] || "")}</blockquote>
@@ -172,7 +173,9 @@
     visaPackages: () => D.visa.packages.map(visaCard).join(""),
     visaExtras,
     clubSessions: () => D.clubSessions.map(clubSession).join(""),
+    countries: () => D.countries.map((c) => `<li>${esc(t("country." + c))}</li>`).join(""),
   };
+  D.experience.countries = D.countries.length;
   const SIZE = { results: D.results.length, resultsTeaser: D.results.length, intlResults: D.intlResults.length, reviews: D.reviews.length };
 
   // ---------- render everything for one language ----------

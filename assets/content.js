@@ -49,7 +49,7 @@ window.DEUS = {
       exam: "telc Deutsch",
       level: "B2",
       date: "08.2026",
-      months: null,
+      months: 4.5,
       grade: "Gut",
       scores: [["Schriftlich", 179, 225], ["Mündlich", 64, 75], ["Summe", 243, 300]],
     },
@@ -57,8 +57,8 @@ window.DEUS = {
       name: "Saidabrorkhon S.",
       exam: "Goethe-Zertifikat",
       level: "B1",
-      date: "11.2022",
-      months: null,
+      date: null,
+      months: 3,
       scores: [["Lesen", 70, 100], ["Hören", 80, 100], ["Schreiben", 85, 100], ["Sprechen", 83, 100]],
     },
     {
@@ -71,6 +71,9 @@ window.DEUS = {
       scores: [["Hören", 14.94, 25], ["Lesen", 24.9, 25], ["Schreiben", 24.9, 25], ["Sprechen", 21.58, 25], ["Gesamt", 86, 100]],
     },
   ],
+
+  // Countries our students come from (names are in i18n/common.js as country.<code>).
+  countries: ["uz", "ua", "kz", "tr", "ps", "ru", "ng"],
 
   // Results of students from outside Uzbekistan (same format as results). Shown on /international/.
   intlResults: [],
