@@ -20,7 +20,7 @@ window.DEUS = {
   // eur = price per person for one month (12 lessons). Names are in i18n/common.js (course.<id>.*).
   courses: [
     { id: "klasse", eur: 100, minutes: 100, perWeek: 3, lessons: 12, size: [7, 10] },
-    { id: "kreis", eur: 150, minutes: 90, perWeek: 3, lessons: 12, size: [3, 6] },
+    { id: "privatgruppe", eur: 150, minutes: 90, perWeek: 3, lessons: 12, size: [3, 6] },
     { id: "privat", eur: 250, minutes: 60, perWeek: 3, lessons: 12, size: [1, 1] },
   ],
 
@@ -124,9 +124,9 @@ window.DEUS = {
 
   // Speaking club sessions that already took place (from the DEUS channel).
   clubSessions: [
-    { date: "29.01.2022", topic: "ausbildung", guest: "Fabian", guestNote: "C2" },
-    { date: "08.01.2022", topic: "aupair", guest: "Dinara", guestNote: "C1" },
-    { date: "25.12.2021", topic: "ferienjob", guest: "Kamol" },
-    { date: "04.12.2021", topic: "studentlife", guest: "Fabian" },
+    { topic: "ausbildung", guest: "Fabian", guestNote: "C2" },
+    { topic: "aupair", guest: "Dinara", guestNote: "C1" },
+    { topic: "ferienjob", guest: "Kamol" },
+    { topic: "studentlife", guest: "Fabian" },
   ],
 };

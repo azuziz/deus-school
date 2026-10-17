@@ -89,23 +89,19 @@
   function courseCard(c, i) {
     const [lo, hi] = c.size;
     const size = hi === 1 ? t("course.one") : t("course.size", { lo, hi });
-    const att = [Math.round(c.minutes / hi), Math.round(c.minutes / lo)];
-    const attText = att[0] === att[1] ? t("course.min", { n: att[0] }) : t("course.minRange", { lo: att[0], hi: att[1] });
-    const somMonth = toSom(c.eur);
     return `<article class="tier tier-${c.id}">
       <div class="tier-head"><span class="tier-step">${i + 1}</span><span class="tier-kind">${esc(t(`course.${c.id}.kind`))}</span></div>
       <h3 class="tier-name">${esc(t(`course.${c.id}.name`))}</h3>
       <p class="tier-sub">${esc(t(`course.${c.id}.sub`))}</p>
       <div class="amount"><b>${eur(c.eur)}</b> <span>${esc(t(c.id === "privat" ? "course.perMonth" : "course.perPersonMonth"))}</span></div>
-      <div class="uzs">≈ ${som(somMonth)} · ${esc(t("course.perLesson", { p: som(Math.round(somMonth / c.lessons / 1000) * 1000) }))}</div>
+      <div class="uzs">≈ ${som(toSom(c.eur))}</div>
       <ul>
         <li>${esc(size)}</li>
         <li>${esc(t("course.schedule", { n: c.perWeek, m: c.minutes }))}</li>
         <li>${esc(t("course.lessons", { n: c.lessons }))}</li>
       </ul>
-      <div class="attention"><span>${esc(t("course.attention"))}</span><span class="bar"><i style="width:${Math.round((att[1] / 60) * 100)}%"></i></span><b>${esc(attText)}</b></div>
       <p class="tier-text">${esc(t(`course.${c.id}.text`))}</p>
-      <a class="btn ${c.id === "kreis" ? "primary" : "ghost"}" href="${esc(D.links.bot)}" target="_blank" rel="noopener">${esc(t("cta.trial"))}</a>
+      <a class="btn ${c.id === "privatgruppe" ? "primary" : "ghost"}" href="${esc(D.links.bot)}" target="_blank" rel="noopener">${esc(t("cta.trial"))}</a>
     </article>`;
   }
 
@@ -161,7 +157,7 @@
 
   function clubSession(s) {
     const note = s.guestNote ? ` (${esc(s.guestNote)})` : "";
-    return `<li><time>${esc(s.date)}</time><div><b>${esc(t(`club.topic.${s.topic}`))}</b><span>${esc(t("club.guest"))}: ${esc(s.guest)}${note}</span></div></li>`;
+    return `<li><div><b>${esc(t(`club.topic.${s.topic}`))}</b><span>${esc(t("club.guest"))}: ${esc(s.guest)}${note}</span></div></li>`;
   }
 
   const RENDER = {
