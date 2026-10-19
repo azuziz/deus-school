@@ -17,6 +17,7 @@ Object.assign(window.T, {
 
   "cur.som": { en: "UZS", ru: "сум", uz: "so'm", de: "UZS" },
   "lang.de": { en: "German", ru: "немецкого", uz: "Nemis", de: "Deutschen" },
+  "lang.ru": { en: "Russian", ru: "русского", uz: "Rus", de: "Russischen" },
 
   "stat.teach": { en: "years of teaching", ru: "лет преподавания", uz: "yillik o'qituvchilik tajribasi", de: "Jahre Unterrichtserfahrung" },
   "stat.de": { en: "years of experience in Germany", ru: "лет опыта в Германии", uz: "yil Germaniyadagi tajriba", de: "Jahre Erfahrung in Deutschland" },
@@ -29,6 +30,7 @@ Object.assign(window.T, {
   "country.ps": { en: "Palestine", ru: "Палестина", uz: "Falastin", de: "Palästina" },
   "country.ru": { en: "Russia", ru: "Россия", uz: "Rossiya", de: "Russland" },
   "country.ng": { en: "Nigeria", ru: "Нигерия", uz: "Nigeriya", de: "Nigeria" },
+  "country.lb": { en: "Lebanon", ru: "Ливан", uz: "Livan", de: "Libanon" },
 
   // the three course formats
   "course.klasse.name": { en: "Klasse", ru: "Klasse", uz: "Klasse", de: "Klasse" },

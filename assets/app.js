@@ -116,14 +116,16 @@
     const months = r.months ? `<span class="months">${esc(t("results.months", { n: dec(r.months) }))}</span>` : "";
     const grade = r.grade ? `<span class="grade">${esc(r.grade)}</span>` : "";
     return `<article class="res">
-      <div class="res-top"><span class="lvl">${esc(r.level)}</span><div><div class="exam">${esc(r.exam)}</div><div class="who">${esc(r.name)}${r.date ? ` · ${esc(r.date)}` : ""}</div></div>${grade}</div>
+      <div class="res-top"><span class="lvl">${esc(r.level)}</span><div><div class="exam">${esc(r.exam)}</div><div class="who">${esc(r.name)}</div></div>${grade}</div>
       <div class="scores">${rows}</div>${extra}${months}
     </article>`;
   }
 
   function reviewCard(r) {
     const shown = r.text[lang] ? lang : r.text.en ? "en" : Object.keys(r.text)[0];
-    const meta = r.months ? t("reviews.meta", { level: r.level, n: dec(r.months) }) : r.level || "";
+    const meta = [r.months ? t("reviews.meta", { level: r.level, n: dec(r.months) }) : r.level, r.country && t("country." + r.country)]
+      .filter(Boolean)
+      .join(" · ");
     const note = r.original && shown !== r.original ? `<small class="tr">${esc(t("reviews.translated", { from: t("lang." + r.original) }))}</small>` : "";
     return `<figure class="rev">
       <blockquote>${esc(r.text[shown] || "")}</blockquote>

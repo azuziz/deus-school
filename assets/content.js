@@ -31,7 +31,6 @@ window.DEUS = {
       name: "Dinara A.",
       exam: "TestDaF",
       level: "C1",
-      date: "06.2021",
       months: null,
       scores: [["Lesen", 4, 5, "TDN 4"], ["Hören", 4, 5, "TDN 4"], ["Schreiben", 4, 5, "TDN 4"], ["Sprechen", 4, 5, "TDN 4"]],
     },
@@ -39,16 +38,14 @@ window.DEUS = {
       name: "Parisa M.",
       exam: "Goethe-Zertifikat",
       level: "B2",
-      date: "03.2022",
       months: null,
       scores: [["Lesen", 83, 100], ["Hören", 70, 100], ["Schreiben", 63, 100], ["Sprechen", 87, 100]],
-      extra: "+ TestDaF 05.2022: Sprechen TDN 5",
+      extra: "+ TestDaF: Sprechen TDN 5",
     },
     {
       name: "Narmina Y.",
       exam: "telc Deutsch",
       level: "B2",
-      date: "08.2026",
       months: 4.5,
       grade: "Gut",
       scores: [["Schriftlich", 179, 225], ["Mündlich", 64, 75], ["Summe", 243, 300]],
@@ -57,7 +54,6 @@ window.DEUS = {
       name: "Saidabrorkhon S.",
       exam: "Goethe-Zertifikat",
       level: "B1",
-      date: null,
       months: 3,
       scores: [["Lesen", 70, 100], ["Hören", 80, 100], ["Schreiben", 85, 100], ["Sprechen", 83, 100]],
     },
@@ -65,7 +61,6 @@ window.DEUS = {
       name: "Kholniso K.",
       exam: "Goethe-Zertifikat",
       level: "A1",
-      date: "08.2021",
       months: null,
       grade: "Gut",
       scores: [["Hören", 14.94, 25], ["Lesen", 24.9, 25], ["Schreiben", 24.9, 25], ["Sprechen", 21.58, 25], ["Gesamt", 86, 100]],
@@ -73,12 +68,21 @@ window.DEUS = {
   ],
 
   // Countries our students come from (names are in i18n/common.js as country.<code>).
-  countries: ["uz", "ua", "kz", "tr", "ps", "ru", "ng"],
+  countries: ["uz", "ua", "kz", "tr", "ps", "lb", "ru", "ng"],
 
   // Results of students from outside Uzbekistan (same format as results). Shown on /international/.
-  intlResults: [],
+  intlResults: [
+    {
+      name: "Maksym R.",
+      exam: "DTZ (Deutsch-Test für Zuwanderer)",
+      level: "B1",
+      months: null,
+      scores: [["Hören und Lesen", 35, 45], ["Schreiben", 16, 20], ["Sprechen", 95, 100]],
+    },
+  ],
 
-  // Student reviews. level + months show as "C1 in 8 months" (months can be left out).
+  // Student reviews. level + months show as "C1 in 8 months" (months can be left out);
+  // country (a code from the list above) is shown after it.
   // original: the language the student wrote in - the other languages get a "translated from" note.
   reviews: [
     {
@@ -91,6 +95,31 @@ window.DEUS = {
         ru: "Хочу поблагодарить вас за всё! Вы вложили очень много времени и сил в моё обучение, и, честно говоря, я до сих пор удивляюсь, что мне понадобилось всего 8 месяцев, чтобы выйти на уровень C1. Без вашей работы всё было бы совсем по-другому и намного сложнее. Я всегда буду рекомендовать вас как лучшего преподавателя немецкого.",
         uz: "Sizga hamma narsa uchun rahmat aytmoqchiman! O'qishimga juda ko'p vaqt va kuch sarfladingiz. Rostini aytsam, C1 darajasiga atigi 8 oyda chiqqanimdan haligacha hayronman. Sizning mehnatingizsiz hammasi butunlay boshqacha va ancha qiyin bo'lardi. Sizni har doim eng yaxshi nemis tili o'qituvchisi sifatida tavsiya qilaman.",
         en: "I also wanted to thank you for everything! You put so much time and effort into my learning, and honestly, I'm still surprised it took me only 8 months to reach C1. Without your work it would have been completely different and much harder. I would recommend you again and again as the best German teacher.",
+      },
+    },
+    {
+      name: "Omar A.",
+      level: "B2",
+      months: 3,
+      country: "lb",
+      original: "de",
+      text: {
+        de: "Seit vielen Jahren lerne ich Deutsch, um meine Träume zu verwirklichen: das B2-Zertifikat zu bestehen und in Deutschland zu arbeiten. Zuvor hatte ich die Prüfung bereits dreimal abgelegt und war leider jedes Mal durchgefallen. Beim letzten Mal war ich so demotiviert, dass ich sogar ans Aufgeben dachte. Es ist wirklich ein Wunder, dass ich Sie gefunden habe! Durch Ihre Motivation habe ich neue Hoffnung geschöpft. Nach drei Monaten intensiven und anspruchsvollen Lernens habe ich die telc-B2-Prüfung schließlich bestanden. Jetzt kann ich endlich sagen: Meinen Traumlehrer habe ich bereits gefunden – jetzt muss ich nur noch meinen Traumjob finden!",
+        ru: "Уже много лет я учу немецкий, чтобы осуществить свои мечты: сдать экзамен B2 и работать в Германии. До этого я уже три раза сдавал экзамен и, к сожалению, каждый раз проваливался. В последний раз я был настолько демотивирован, что даже думал всё бросить. Это настоящее чудо, что я нашёл вас! Благодаря вашей мотивации у меня появилась новая надежда. После трёх месяцев интенсивной и непростой учёбы я наконец сдал экзамен telc B2. Теперь я наконец могу сказать: учителя своей мечты я уже нашёл — осталось только найти работу мечты!",
+        uz: "Ko'p yillardan beri orzularimni ro'yobga chiqarish uchun nemis tilini o'rganib kelaman: B2 sertifikatini olish va Germaniyada ishlash. Bundan oldin imtihonni uch marta topshirgan edim, ammo afsuski, har safar o'ta olmadim. Oxirgi safar ruhim shunchalik tushib ketgan ediki, hatto taslim bo'lishni ham o'yladim. Sizni topganim haqiqatan ham mo'jiza! Sizning motivatsiyangiz menga yangi umid bag'ishladi. Uch oylik jadal va mashaqqatli o'qishdan so'ng nihoyat telc B2 imtihonidan o'tdim. Endi nihoyat ayta olaman: orzuimdagi o'qituvchini allaqachon topdim – endi faqat orzuimdagi ishni topishim qoldi!",
+        en: "For many years I have been learning German to make my dreams come true: to pass the B2 exam and to work in Germany. Before that, I had already taken the exam three times and, unfortunately, failed every time. The last time I was so demotivated that I even thought about giving up. It really is a miracle that I found you! Your motivation gave me new hope. After three months of intensive and demanding study, I finally passed the telc B2 exam. Now I can finally say: I have already found my dream teacher – now I only need to find my dream job!",
+      },
+    },
+    {
+      name: "Maksym R.",
+      level: "B1",
+      country: "ua",
+      original: "ru",
+      text: {
+        ru: "Благодарю Вас от всей души за Ваш труд, терпение и поддержку! Благодаря Вашим занятиям я сдал экзамен на уровень B1 и стал гораздо увереннее чувствовать себя в немецком языке. Очень ценю Ваш профессионализм и ту доброжелательную атмосферу, которую Вы создавали на каждом уроке.",
+        de: "Ich danke Ihnen von ganzem Herzen für Ihre Arbeit, Ihre Geduld und Ihre Unterstützung! Dank Ihres Unterrichts habe ich die B1-Prüfung bestanden und fühle mich im Deutschen viel sicherer. Ich schätze Ihre Professionalität und die freundliche Atmosphäre, die Sie in jeder Stunde geschaffen haben, sehr.",
+        uz: "Mehnatingiz, sabr-toqatingiz va qo'llab-quvvatlaganingiz uchun sizga chin yurakdan minnatdorman! Darslaringiz tufayli B1 imtihonini topshirdim va nemis tilida o'zimni ancha ishonchli his qila boshladim. Professionalligingizni va har bir darsda yaratgan samimiy muhitingizni juda qadrlayman.",
+        en: "Thank you from the bottom of my heart for your work, patience and support! Thanks to your lessons I passed the B1 exam and now feel much more confident in German. I really appreciate your professionalism and the friendly atmosphere you created in every lesson.",
       },
     },
   ],
