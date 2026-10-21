@@ -121,14 +121,20 @@
     </article>`;
   }
 
+  const LONG_REVIEW = 700; // characters; longer reviews start folded with a "Read more" button
+
   function reviewCard(r) {
     const shown = r.text[lang] ? lang : r.text.en ? "en" : Object.keys(r.text)[0];
-    const meta = [r.months ? t("reviews.meta", { level: r.level, n: dec(r.months) }) : r.level, r.country && t("country." + r.country)]
+    const time = r.months && t(r.level ? "reviews.meta" : "reviews.monthsOnly", { level: r.level, n: dec(r.months) });
+    const meta = [time || r.level, r.country && t("country." + r.country)]
       .filter(Boolean)
       .join(" · ");
     const note = r.original && shown !== r.original ? `<small class="tr">${esc(t("reviews.translated", { from: t("lang." + r.original) }))}</small>` : "";
-    return `<figure class="rev">
-      <blockquote>${esc(r.text[shown] || "")}</blockquote>
+    const text = r.text[shown] || "";
+    const long = text.length > LONG_REVIEW;
+    return `<figure class="rev${long ? " long" : ""}">
+      <blockquote>${text.split(/\n+/).map((p) => `<p>${esc(p)}</p>`).join("")}</blockquote>
+      ${long ? `<button class="more" type="button">${esc(t("reviews.more"))}</button>` : ""}
       <figcaption><b>${esc(r.name)}</b><span>${esc(meta)}</span>${note}</figcaption>
     </figure>`;
   }
@@ -268,6 +274,12 @@
       render(b.dataset.lang);
     })
   );
+  document.addEventListener("click", (e) => {
+    const more = e.target.closest(".rev .more");
+    if (!more) return;
+    const open = more.closest(".rev").classList.toggle("open");
+    more.textContent = t(open ? "reviews.less" : "reviews.more");
+  });
   render(pickLang());
   motion.stats();
   motion.hero();

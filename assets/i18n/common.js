@@ -77,6 +77,9 @@ Object.assign(window.T, {
   "results.months": { en: "Preparation: {n} months", ru: "Подготовка: {n} мес.", uz: "Tayyorgarlik: {n} oy", de: "Vorbereitung: {n} Monate" },
   "reviews.title": { en: "What students say", ru: "Что говорят студенты", uz: "Talabalar fikri", de: "Das sagen unsere Lernenden" },
   "reviews.meta": { en: "{level} in {n} months", ru: "{level} за {n} мес.", uz: "{n} oyda {level}", de: "{level} in {n} Monaten" },
+  "reviews.monthsOnly": { en: "{n} months at DEUS", ru: "{n} мес. в DEUS", uz: "DEUS'da {n} oy", de: "{n} Monate bei DEUS" },
+  "reviews.more": { en: "Read more", ru: "Читать полностью", uz: "To'liq o'qish", de: "Weiterlesen" },
+  "reviews.less": { en: "Show less", ru: "Свернуть", uz: "Yig'ish", de: "Weniger anzeigen" },
   "reviews.translated": { en: "Translated from {from}", ru: "Перевод с {from}", uz: "{from} tilidan tarjima", de: "Übersetzt aus dem {from}" },
 
   // Telegram block

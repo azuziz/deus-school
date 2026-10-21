@@ -109,10 +109,9 @@ Object.assign(window.T, {
 
   "sep.title": { en: "Paid separately", ru: "Оплачивается отдельно", uz: "Alohida to'lanadi", de: "Separat zu bezahlen" },
   "sep.1": { en: "Visa fee (Germany: €75)", ru: "Визовый сбор (Германия: 75 €)", uz: "Viza yig'imi (Germaniya: 75 €)", de: "Visumgebühr (Deutschland: 75 €)" },
-  "sep.2": { en: "The blocked account amount (2026: €11,904 a year) and the provider's fee", ru: "Сумма на блокированном счёте (2026: 11 904 € в год) и комиссия провайдера", uz: "Bloklangan hisobdagi summa (2026: yiliga 11 904 €) va provayder komissiyasi", de: "Betrag auf dem Sperrkonto (2026: 11.904 € pro Jahr) und Gebühr des Anbieters" },
+  "sep.2": { en: "The blocked account amount", ru: "Сумма на блокированном счёте", uz: "Bloklangan hisobdagi summa", de: "Betrag auf dem Sperrkonto" },
   "sep.3": { en: "Health insurance", ru: "Медицинская страховка", uz: "Tibbiy sug'urta", de: "Krankenversicherung" },
   "sep.4": { en: "Translations and notarisation", ru: "Переводы и нотариальное заверение", uz: "Tarjimalar va notarial tasdiqlash", de: "Übersetzungen und notarielle Beglaubigung" },
-  "sep.5": { en: "Tickets, transport, SIM card", ru: "Билеты, проезд, SIM-карта", uz: "Chiptalar, yo'l haqi, SIM-karta", de: "Tickets, Fahrten, SIM-Karte" },
 
   "terms.title": { en: "Terms", ru: "Условия", uz: "Shartlar", de: "Bedingungen" },
   "terms.1": { en: "Up to 2 rounds of corrections to the form and documents", ru: "До 2 раундов исправлений анкеты и документов", uz: "Anketa va hujjatlarga 2 martagacha tuzatish", de: "Bis zu 2 Korrekturrunden für Antrag und Unterlagen" },
