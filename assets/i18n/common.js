@@ -74,6 +74,7 @@ Object.assign(window.T, {
   },
 
   // results and reviews
+  "results.next": { en: "+ {exam}: {level} after {n} months", ru: "+ {exam}: {level} через {n} мес.", uz: "+ {exam}: {n} oydan so'ng {level}", de: "+ {exam}: {level} nach {n} Monaten" },
   "results.months": { en: "Preparation: {n} months", ru: "Подготовка: {n} мес.", uz: "Tayyorgarlik: {n} oy", de: "Vorbereitung: {n} Monate" },
   "reviews.title": { en: "What students say", ru: "Что говорят студенты", uz: "Talabalar fikri", de: "Das sagen unsere Lernenden" },
   "reviews.meta": { en: "{level} in {n} months", ru: "{level} за {n} мес.", uz: "{n} oyda {level}", de: "{level} in {n} Monaten" },

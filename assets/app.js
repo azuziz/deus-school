@@ -112,11 +112,12 @@
         return `<div class="row"><span>${esc(label)}</span><span class="bar"><i style="width:${pct}%"></i></span><b>${esc(shown || `${got}/${max}`)}</b></div>`;
       })
       .join("");
-    const extra = r.extra ? `<div class="extra">${esc(r.extra)}</div>` : "";
+    const extra = r.next ? `<div class="extra">${esc(t("results.next", { exam: r.next.exam, level: r.next.level, n: dec(r.next.months) }))}</div>` : "";
+    const who = [r.name, r.country && t("country." + r.country)].filter(Boolean).join(" · ");
     const months = r.months ? `<span class="months">${esc(t("results.months", { n: dec(r.months) }))}</span>` : "";
     const grade = r.grade ? `<span class="grade">${esc(r.grade)}</span>` : "";
     return `<article class="res">
-      <div class="res-top"><span class="lvl">${esc(r.level)}</span><div><div class="exam">${esc(r.exam)}</div><div class="who">${esc(r.name)}</div></div>${grade}</div>
+      <div class="res-top"><span class="lvl">${esc(r.level)}</span><div><div class="exam">${esc(r.exam)}</div><div class="who">${esc(who)}</div></div>${grade}</div>
       <div class="scores">${rows}</div>${extra}${months}
     </article>`;
   }

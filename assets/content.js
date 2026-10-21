@@ -26,21 +26,23 @@ window.DEUS = {
 
   // Student results - add only with the student's permission.
   // A score can have a 4th value: the text to show instead of "got/max" (used for TestDaF levels).
+  // months = preparation time; country (a code from the list below) is shown after the name;
+  // next = a later exam/level, shown as "+ exam: level after n months" (months counted from the start).
   results: [
     {
       name: "Dinara A.",
       exam: "TestDaF",
       level: "C1",
-      months: null,
+      months: 6,
       scores: [["Lesen", 4, 5, "TDN 4"], ["Hören", 4, 5, "TDN 4"], ["Schreiben", 4, 5, "TDN 4"], ["Sprechen", 4, 5, "TDN 4"]],
     },
     {
       name: "Parisa M.",
       exam: "Goethe-Zertifikat",
       level: "B2",
-      months: null,
+      months: 4,
       scores: [["Lesen", 83, 100], ["Hören", 70, 100], ["Schreiben", 63, 100], ["Sprechen", 87, 100]],
-      extra: "+ TestDaF: Sprechen TDN 5",
+      next: { exam: "TestDaF Sprechen TDN 5", level: "C1", months: 7 },
     },
     {
       name: "Narmina Y.",
@@ -61,7 +63,7 @@ window.DEUS = {
       name: "Kholniso K.",
       exam: "Goethe-Zertifikat",
       level: "A1",
-      months: null,
+      months: 2,
       grade: "Gut",
       scores: [["Hören", 14.94, 25], ["Lesen", 24.9, 25], ["Schreiben", 24.9, 25], ["Sprechen", 21.58, 25], ["Gesamt", 86, 100]],
     },
@@ -76,7 +78,8 @@ window.DEUS = {
       name: "Maksym R.",
       exam: "DTZ (Deutsch-Test für Zuwanderer)",
       level: "B1",
-      months: null,
+      months: 4,
+      country: "ua",
       scores: [["Hören und Lesen", 35, 45], ["Schreiben", 16, 20], ["Sprechen", 95, 100]],
     },
   ],
@@ -125,6 +128,7 @@ window.DEUS = {
     {
       name: "Maksym R.",
       level: "B1",
+      months: 4,
       country: "ua",
       original: "ru",
       text: {

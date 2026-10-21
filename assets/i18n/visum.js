@@ -57,7 +57,6 @@ Object.assign(window.T, {
   "airport.cond": { en: "Conditions", ru: "Условия", uz: "Shartlar", de: "Bedingungen" },
   "airport.c1": { en: "Major airports in Germany. Other cities by arrangement", ru: "Основные аэропорты Германии. Другие города — по договорённости", uz: "Germaniyaning asosiy aeroportlari. Boshqa shaharlar — kelishuv asosida", de: "Große Flughäfen in Deutschland, andere Städte nach Absprache" },
   "airport.c2": { en: "Tell us your arrival time at least 5 days in advance", ru: "Время прилёта сообщается минимум за 5 дней", uz: "Yetib kelish vaqti kamida 5 kun oldin ma'lum qilinadi", de: "Ankunftszeit mindestens 5 Tage vorher mitteilen" },
-  "airport.c3": { en: "Transport, SIM card and tickets are paid separately", ru: "Проезд, SIM-карта и билеты оплачиваются отдельно", uz: "Yo'l haqi, SIM-karta va chiptalar alohida to'lanadi", de: "Fahrt, SIM-Karte und Tickets werden separat bezahlt" },
 
   "extras.title": { en: "Additional services", ru: "Дополнительные услуги", uz: "Qo'shimcha xizmatlar", de: "Zusatzleistungen" },
   "extras.lead": { en: "Add what you need to any package. The price is fixed in advance.", ru: "Добавьте нужное к любому пакету. Цена фиксируется заранее.", uz: "Istalgan paketga keraklisini qo'shing. Narx oldindan belgilanadi.", de: "Ergänze jedes Paket nach Bedarf. Der Preis steht vorher fest." },
