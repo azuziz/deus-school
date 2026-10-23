@@ -38,12 +38,20 @@
         <article class="card"><div class="ic">🎟</div><h3 data-i18n="club.f1.t"></h3><p data-i18n="club.f1.d"></p></article>
         <article class="card"><div class="ic">🇩🇪</div><h3 data-i18n="club.f2.t"></h3><p data-i18n="club.f2.d"></p></article>
         <article class="card"><div class="ic">🌍</div><h3 data-i18n="club.f3.t"></h3><p data-i18n="club.f3.d"></p></article>
-        <article class="card"><div class="ic">📅</div><h3 data-i18n="club.f4.t"></h3><p data-i18n="club.f4.d"></p></article>
+        <article class="card"><div class="ic">📅</div><h3 data-i18n="club.f4.t"></h3><p data-i18n="club.f4.d"></p><a class="card-link" data-link="channel" target="_blank" rel="noopener" data-i18n="club.f4.link"></a></article>
       </div>
     </div>
   </section>
 
-  <section class="sec alt">
+  <section class="sec alt" id="club-upcoming">
+    <div class="wrap">
+      <h2 data-i18n="club.upcoming"></h2>
+      <p class="sec-lead" data-i18n="club.allLevels"></p>
+      <div class="grid upcoming" data-render="clubUpcoming" data-hide-empty="club-upcoming"></div>
+    </div>
+  </section>
+
+  <section class="sec">
     <div class="wrap">
       <h2 data-i18n="club.past"></h2>
       <ol class="sessions" data-render="clubSessions"></ol>

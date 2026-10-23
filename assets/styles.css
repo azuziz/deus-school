@@ -130,6 +130,8 @@ svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width:
 .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 26px; box-shadow: var(--shadow); }
 .card h3 { margin: 18px 0 8px; }
 .card p { color: var(--muted); font-size: 15px; }
+.card-link { display: inline-block; margin-top: 12px; color: var(--red); font-weight: 700; font-size: 15px; text-decoration: none; }
+.card-link:hover { text-decoration: underline; }
 .ic { width: 46px; height: 46px; border-radius: 12px; display: grid; place-items: center; background: var(--bg-alt); font: 700 14px Unbounded, sans-serif; color: var(--red); }
 .ic svg { stroke: var(--red); }
 
@@ -346,6 +348,28 @@ svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width:
 .banner { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 28px; border-radius: var(--radius); background: var(--ink); color: var(--bg); text-decoration: none; }
 .banner p { opacity: .75; margin-top: 6px; }
 .banner svg { flex: none; width: 28px; height: 28px; }
+
+/* speaking club: upcoming sessions */
+.sec h2 + .grid.upcoming { margin-top: 28px; }
+.up { display: flex; flex-direction: column; gap: 14px; }
+.up-when b { display: block; font: 700 16px Unbounded, sans-serif; color: var(--red); }
+.up-when b::first-letter { text-transform: uppercase; }
+.up-when span { color: var(--muted); font-size: 14px; }
+.up h3 { font-size: 20px; }
+.up-desc { color: var(--muted); font-size: 15px; margin-top: -6px; }
+.up-when, .up-teaser { position: relative; }
+.blur { display: block; filter: blur(7px); user-select: none; pointer-events: none; }
+.blur b, .blur span { display: block; }
+.soon { position: absolute; left: 0; top: 50%; transform: translateY(-50%); padding: 4px 12px; border-radius: 999px; background: var(--ink); color: var(--bg); font: 600 13px Manrope, sans-serif; white-space: nowrap; }
+.up.teaser .up-guest { opacity: .55; }
+.up-guest { display: flex; gap: 14px; align-items: center; padding: 14px; border-radius: 12px; background: var(--bg-alt); }
+.up-guest b { display: block; }
+.up-guest span { color: var(--muted); font-size: 14px; }
+.up .btn { align-self: flex-start; margin-top: auto; }
+.avatar { position: relative; flex: none; display: grid; place-items: center; width: 56px; height: 56px; border-radius: 50%; overflow: hidden; background: var(--ink); color: var(--bg); font: 700 22px Unbounded, sans-serif; }
+.avatar.mystery { background: linear-gradient(160deg, #2c3038, #121418); box-shadow: inset 0 0 0 2px rgba(227, 164, 20, .35); }
+.avatar.mystery svg { position: absolute; inset: 0; width: 100%; height: 100%; fill: rgba(255, 255, 255, .2); }
+.avatar.mystery i { position: relative; font-style: normal; color: var(--gold); font-size: 26px; }
 
 /* speaking club sessions */
 .sessions { list-style: none; margin: 32px 0 0; padding: 0; display: grid; gap: 12px; }

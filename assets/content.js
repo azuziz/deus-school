@@ -167,6 +167,22 @@ window.DEUS = {
     ],
   },
 
+  // Upcoming speaking club sessions, one per Sunday - the block is hidden while this is empty.
+  // when = the start, with Berlin's UTC offset (+01:00 in winter, +02:00 in summer), shown in Tashkent
+  // and Berlin time; leave it out and the date is shown blurred ("coming soon"). topic = a key
+  // club.topic.<topic> in i18n/pages.js; leave it out and the topic is blurred too (a teaser).
+  // guest: null = mystery guest, or { name: "...", note: "..." } once revealed.
+  // Move a session to clubSessions after it took place.
+  // Topics in reserve: ki, studienkolleg, wohnungssuche, visum (texts are in i18n/pages.js).
+  clubUpcoming: [
+    { when: "2026-11-01T16:00:00+01:00", topic: "leben", guest: null },
+    { topic: "studiengaenge", guest: null },
+    { topic: "kulturschock", guest: null },
+    { guest: null },
+    { guest: null },
+    { guest: null },
+  ],
+
   // Speaking club sessions that already took place (from the DEUS channel).
   clubSessions: [
     { topic: "ausbildung", guest: "Fabian", guestNote: "C2" },

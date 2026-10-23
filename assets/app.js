@@ -164,6 +164,38 @@
       .join("")}</tbody></table>`;
   }
 
+  const LOCALES = { en: "en-GB", ru: "ru-RU", uz: "uz-Latn-UZ", de: "de-DE" };
+  const MYSTERY_AVATAR = `<span class="avatar mystery" aria-hidden="true"><svg viewBox="0 0 64 64"><circle cx="32" cy="25" r="12"/><path d="M8 64c1-15 11-23 24-23s23 8 24 23z"/></svg><i>?</i></span>`;
+
+  // Blurred placeholders use dummy text, so a hidden date or topic can't be read from the page source.
+  function blurred(dummy, label) {
+    return `<span class="blur" aria-hidden="true">${dummy}</span><span class="soon">${esc(label)}</span>`;
+  }
+
+  function clubUpcoming(s) {
+    let date = `<div class="up-when">${blurred("<b>Sonntag, 00. Monat</b><span>00:00 · 00:00</span>", t("club.dateSoon"))}</div>`;
+    if (s.when) {
+      const when = new Date(s.when);
+      const at = (timeZone, options) => new Intl.DateTimeFormat(LOCALES[lang] || "en-GB", { timeZone, ...options }).format(when);
+      const day = at("Asia/Tashkent", { weekday: "long", day: "numeric", month: "long" });
+      const clock = { hour: "2-digit", minute: "2-digit" };
+      const times = `${at("Asia/Tashkent", clock)} ${t("club.tz.uz")} · ${at("Europe/Berlin", clock)} ${t("club.tz.de")}`;
+      date = `<div class="up-when"><b>${esc(day)}</b><span>${esc(times)}</span></div>`;
+    }
+    const topic = s.topic
+      ? `<h3>${esc(t(`club.topic.${s.topic}`))}</h3>${T[`club.topic.${s.topic}.d`] ? `<p class="up-desc">${esc(t(`club.topic.${s.topic}.d`))}</p>` : ""}`
+      : `<h3 class="up-teaser">${blurred("Ein neues Thema, das du lieben wirst", t("club.topicSoon"))}</h3>`;
+    const guest = s.guest
+      ? `<span class="avatar">${esc(s.guest.name.slice(0, 1))}</span><div><b>${esc(s.guest.name)}</b><span>${esc(s.guest.note || "")}</span></div>`
+      : `${MYSTERY_AVATAR}<div><b>${esc(t("club.mystery"))}</b><span>${esc(t("club.mystery.d"))}</span></div>`;
+    return `<article class="up card${s.topic ? "" : " teaser"}">
+      ${date}
+      ${topic}
+      <div class="up-guest">${guest}</div>
+      <a class="btn ghost" href="${esc(D.links.channel)}" target="_blank" rel="noopener">${esc(t("club.cta"))}</a>
+    </article>`;
+  }
+
   function clubSession(s) {
     const note = s.guestNote ? ` (${esc(s.guestNote)})` : "";
     return `<li><div><b>${esc(t(`club.topic.${s.topic}`))}</b><span>${esc(t("club.guest"))}: ${esc(s.guest)}${note}</span></div></li>`;
@@ -178,10 +210,11 @@
     visaPackages: () => D.visa.packages.map(visaCard).join(""),
     visaExtras,
     clubSessions: () => D.clubSessions.map(clubSession).join(""),
+    clubUpcoming: () => D.clubUpcoming.map(clubUpcoming).join(""),
     countries: () => D.countries.map((c) => `<li>${esc(t("country." + c))}</li>`).join(""),
   };
   D.experience.countries = D.countries.length;
-  const SIZE = { results: D.results.length, resultsTeaser: D.results.length, intlResults: D.intlResults.length, reviews: D.reviews.length };
+  const SIZE = { results: D.results.length, resultsTeaser: D.results.length, intlResults: D.intlResults.length, reviews: D.reviews.length, clubUpcoming: D.clubUpcoming.length };
 
   // ---------- render everything for one language ----------
   function render(l) {
