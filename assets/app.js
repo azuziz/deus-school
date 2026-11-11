@@ -198,7 +198,8 @@
 
   function clubSession(s) {
     const note = s.guestNote ? ` (${esc(s.guestNote)})` : "";
-    return `<li><div><b>${esc(t(`club.topic.${s.topic}`))}</b><span>${esc(t("club.guest"))}: ${esc(s.guest)}${note}</span></div></li>`;
+    const guest = s.guest ? `<span>${esc(t("club.guest"))}: ${esc(s.guest)}${note}</span>` : "";
+    return `<li><div><b>${esc(t(`club.topic.${s.topic}`))}</b>${guest}</div></li>`;
   }
 
   const RENDER = {

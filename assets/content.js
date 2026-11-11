@@ -173,18 +173,20 @@ window.DEUS = {
   // club.topic.<topic> in i18n/pages.js; leave it out and the topic is blurred too (a teaser).
   // guest: null = mystery guest, or { name: "...", note: "..." } once revealed.
   // Move a session to clubSessions after it took place.
-  // Topics in reserve: ki, studienkolleg, wohnungssuche, visum (texts are in i18n/pages.js).
+  // Topics in reserve: studienkolleg, wohnungssuche, visum (texts are in i18n/pages.js).
   clubUpcoming: [
-    { when: "2026-11-01T09:00:00+01:00", topic: "leben", guest: null },
-    { topic: "studiengaenge", guest: null },
+    { when: "2026-11-15T15:00:00+01:00", topic: "studiengaenge", guest: null },
     { topic: "kulturschock", guest: null },
+    { topic: "ki", guest: null },
     { guest: null },
     { guest: null },
     { guest: null },
   ],
 
-  // Speaking club sessions that already took place (from the DEUS channel).
+  // Speaking club sessions that already took place, newest first (the older ones are from the
+  // DEUS channel). guest is optional: without it only the topic is shown.
   clubSessions: [
+    { topic: "leben" },
     { topic: "ausbildung", guest: "Fabian", guestNote: "C2" },
     { topic: "aupair", guest: "Dinara", guestNote: "C1" },
     { topic: "ferienjob", guest: "Kamol" },
