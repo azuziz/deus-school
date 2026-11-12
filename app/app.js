@@ -806,7 +806,7 @@
     view.innerHTML = `
       <p class="lead">${esc(t(mine.passed ? "wk_lesson_passed" : "wk_rule", { n: pass }))}</p>
       <div class="list">
-        ${WK_STEPS.map((step) => {
+        ${WK_STEPS.filter((step) => mine.steps.includes(step)).map((step) => {
           const best = mine.best[step];
           const pill = best == null ? "" : `<span class="pill ${step !== "cards" && best >= pass ? "ok" : ""}">${step === "cards" ? "✓" : `${best}%`}</span>`;
           return row("step", { step }, t(`wk_s_${step}`), t(`wk_d_${step}`), pill, { text: WK_ICON[step] });
