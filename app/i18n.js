@@ -161,6 +161,6 @@ window.DEUS_I18N = {
   wk_flag_sent: ["Thank you! We'll check this word.", "Danke! Wir prüfen dieses Wort.", "Спасибо! Мы проверим это слово.", "Rahmat! Bu so'zni tekshiramiz."],
   wk_flag_limit: ["That's enough reports for today. Thank you!", "Das sind genug Meldungen für heute. Danke!", "На сегодня достаточно сообщений. Спасибо!", "Bugunga xabarlar yetarli. Rahmat!"],
 
-  gate: ["This app runs inside Telegram. Open it from the chat with Sophie.", "Diese App läuft in Telegram. Öffne sie aus dem Chat mit Sophie.", "Это приложение работает в Telegram. Откройте его из чата с Софией.", "Bu ilova Telegram ichida ishlaydi. Uni Sofiya bilan chatdan oching."],
-  gate_open: ["Open Telegram", "Telegram öffnen", "Открыть Telegram", "Telegramni ochish"],
+  gate: ["This app runs inside Telegram. Opening it there now…", "Diese App läuft in Telegram. Sie wird dort jetzt geöffnet …", "Это приложение работает в Telegram. Сейчас оно откроется там…", "Bu ilova Telegram ichida ishlaydi. Hozir u yerda ochiladi…"],
+  gate_open: ["Open DEUS Lernen in Telegram", "DEUS Lernen in Telegram öffnen", "Открыть DEUS Lernen в Telegram", "DEUS Lernen'ni Telegramda ochish"],
 };

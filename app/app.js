@@ -1192,7 +1192,9 @@
     if (!IN_TELEGRAM && !LOCAL) {
       view.className = "center";
       view.innerHTML = `<div class="done"><div class="done-emoji">📱</div><h2>DEUS Lernen</h2><p>${esc(t("gate"))}</p>
-        <div class="stack"><a class="btn" href="https://t.me/${esc(CFG.bot)}">${esc(t("gate_open"))}</a></div></div>`;
+        <div class="stack"><a class="btn" href="https://t.me/${esc(CFG.bot)}?startapp">${esc(t("gate_open"))}</a></div></div>`;
+      // Opened in a normal browser: go straight to the app inside Telegram.
+      setTimeout(() => { location.href = `https://t.me/${CFG.bot}?startapp`; }, 600);
       return;
     }
     view.innerHTML = `<div class="loading"><i></i><i></i><i></i></div>`;
