@@ -211,6 +211,8 @@
     title("DEUS Lernen");
     const grammarDone = Object.keys(me.grammar.done).length;
     const vocabStarted = me.vocab.topics.filter((topic) => topic.pos > 0).length;
+    const wkAll = me.wortkiste.levels.flatMap((level) => level.lessons);
+    const wkPassed = wkAll.filter((lesson) => lesson.passed).length, wkLessons = me.student ? wkAll.length : 0;
     const tile = (act, icon, name, sub, done, total) => `<button class="tile" type="button" data-act="${act}">
         <span class="tile-icon">${icon}</span>
         <b>${esc(name)}</b>
@@ -226,6 +228,7 @@
         ${tile("verbs", "🔤", t("verbs"), t("verbs_sub"), me.verbs.learned.length, me.verbs.parts.length)}
         ${tile("grammar", "📘", t("grammar"), t("grammar_sub"), grammarDone, me.grammar.topics.length)}
         ${tile("vocab", "🧠", t("vocab"), t("vocab_sub"), vocabStarted, me.vocab.topics.length)}
+        ${tile("wk", "📦", "Wortkiste", t("wk_sub"), wkPassed, wkLessons)}
         ${tile("articles", "🎯", t("articles"), "der · die · das")}
         ${tile("prepositions", "🧭", t("prepositions"), "Akkusativ · Dativ · Genitiv")}
         ${tile("sophie", "💬", t("sophie"), t("sophie_sub"))}
@@ -234,6 +237,7 @@
       verbs: () => go("verbs"),
       grammar: () => go("grammar"),
       vocab: () => go("vocab"),
+      wk: () => go("wk"),
       articles: () => go("quiz", { kind: "articles" }),
       prepositions: () => go("quiz", { kind: "prepositions" }),
       sophie: () => openChat(),
@@ -708,6 +712,379 @@
         ${finished ? `<p class="note center-text">${esc(t("vocab_done", { n: result.total }))}</p>` : ""}
         <div class="sticky"><button class="btn" data-act="more">${esc(t(finished ? "vocab_again" : "vocab_more", { n: state.me.vocab.set }))}</button></div>`;
       handlers = { more: () => { haptic("tap"); show(); } };
+    });
+  };
+
+  // ---- Wortkiste: the course vocabulary, lesson by lesson (students only; the bot decides)
+  const WK_STEPS = ["cards", "articles", "links", "typing", "blitz", "test"];
+  const WK_ICON = { cards: "🃏", articles: "🎯", links: "🔗", typing: "✍️", blitz: "⚡", test: "🏁" };
+  const WK_ROUND = 12;      // questions in the links and typing rounds
+  const WK_BLITZ_SECONDS = 60;
+  const WK_BLITZ_MIN = 10;  // answering fewer than this in a Blitz can't count as passed
+  const wkCache = {};
+  const wkLevel = (id) => state.me.wortkiste.levels.find((level) => level.id === id);
+  const wkLessonInfo = (id, n) => wkLevel(id).lessons.find((lesson) => lesson.n === n);
+
+  async function wkWords(level, lesson) {
+    const key = `${level}:${lesson}:${state.lang}`;
+    if (!wkCache[key]) wkCache[key] = (await api("wk_lesson", { level, lesson })).words;
+    return wkCache[key];
+  }
+
+  const wkFlag = (word) => `<button class="flag" type="button" data-act="flag" data-entry="${esc(word.entry)}" title="${esc(t("wk_flag"))}" aria-label="${esc(t("wk_flag"))}">⚑</button>`;
+  const wkFlagHandler = (level, lesson) => async (data, node) => {
+    node.disabled = true;
+    try {
+      const result = await api("wk_flag", { level, lesson, entry: data.entry });
+      toast(t(result.sent ? "wk_flag_sent" : "wk_flag_limit"));
+    } catch (error) {
+      node.disabled = false;
+      toast(t("err_net"));
+    }
+  };
+
+  VIEWS.wk = () => {
+    title("Wortkiste");
+    if (!state.me.student) {
+      view.innerHTML = `<p class="lead">${esc(t("wk_intro"))}</p>${lockPanel(t("wk_lock"))}`;
+      handlers = { ...lockHandlers };
+      return;
+    }
+    view.innerHTML = `
+      <p class="lead">${esc(t("wk_intro"))}</p>
+      <div class="list">
+        ${state.me.wortkiste.levels.map((level) => {
+          const done = level.lessons.filter((lesson) => lesson.passed).length;
+          return level.ready
+            ? row("level", { id: level.id }, level.label, t("wk_lessons", { n: level.lessons.length }), `<span class="count">${done}/${level.lessons.length}</span>`, { text: level.label.slice(0, 2), cls: done === level.lessons.length ? "ok" : "gold" })
+            : row("soon", {}, level.label, t("wk_soon"), "", { text: level.label.slice(0, 2) });
+        }).join("")}
+      </div>`;
+    handlers = { level: (data) => go("wkLevel", { level: data.id }), soon: () => toast(t("wk_soon")) };
+  };
+
+  VIEWS.wkLevel = ({ level }) => {
+    const info = wkLevel(level);
+    title(`Wortkiste · ${info.label}`);
+    view.innerHTML = `
+      <p class="lead">${esc(t("wk_rule", { n: state.me.wortkiste.pass }))}</p>
+      <div class="list">
+        ${info.lessons.map((lesson) => row(lesson.open ? "lesson" : "locked", { n: lesson.n }, `${info.label} · Lektion ${lesson.n}`, t("wk_words", { n: lesson.words }),
+          lesson.open ? "" : `<span class="pill">🔒</span>`, lesson.passed ? { text: "✓", cls: "ok" } : { text: String(lesson.n), cls: lesson.open ? "gold" : "" })).join("")}
+      </div>
+      ${info.lessons.some((lesson) => !lesson.open) ? `<button class="btn ghost" data-act="place">${esc(t("wk_further"))}</button>` : ""}`;
+    handlers = {
+      lesson: (data) => go("wkLesson", { level, lesson: Number(data.n) }),
+      locked: () => toast(t("wk_locked")),
+      place: () => go("wkPlace", { level }),
+    };
+  };
+
+  VIEWS.wkPlace = ({ level }, entry) => {
+    const info = wkLevel(level);
+    title(info.label);
+    view.innerHTML = `
+      <p class="lead">${esc(t("wk_place_q"))}</p>
+      <div class="chips wide">${info.lessons.map((lesson) => `<button class="chip ${lesson.open ? "on" : ""}" data-act="pick" data-n="${lesson.n}">Lektion ${lesson.n}</button>`).join("")}</div>
+      <p class="fine">${esc(t("wk_place_note"))}</p>`;
+    handlers = {
+      pick: async (data) => {
+        try {
+          const result = await api("wk_place", { level, lesson: Number(data.n) });
+          state.me.wortkiste.levels = result.levels;
+          if (current() === entry) back();
+        } catch (error) {
+          toast(t("err_net"));
+        }
+      },
+    };
+  };
+
+  VIEWS.wkLesson = ({ level, lesson }) => {
+    const info = wkLevel(level), mine = wkLessonInfo(level, lesson), pass = state.me.wortkiste.pass;
+    title(`${info.label} · Lektion ${lesson}`);
+    view.innerHTML = `
+      <p class="lead">${esc(t(mine.passed ? "wk_lesson_passed" : "wk_rule", { n: pass }))}</p>
+      <div class="list">
+        ${WK_STEPS.map((step) => {
+          const best = mine.best[step];
+          const pill = best == null ? "" : `<span class="pill ${step !== "cards" && best >= pass ? "ok" : ""}">${step === "cards" ? "✓" : `${best}%`}</span>`;
+          return row("step", { step }, t(`wk_s_${step}`), t(`wk_d_${step}`), pill, { text: WK_ICON[step] });
+        }).join("")}
+      </div>`;
+    handlers = { step: (data) => go("wkStep", { level, lesson, step: data.step }) };
+  };
+
+  // ---- Wortkiste: what the questions are made of
+  const wkPick = (list, n) => shuffle(list).slice(0, n);
+  const wkOptions = (answer, pool, n) => shuffle([answer, ...wkPick([...new Set(pool)].filter((value) => value !== answer), n - 1)]).map((value) => ({ value }));
+
+  function wkArticleItems(words) {
+    return words.filter((word) => word.noun).map((word) => ({
+      prompt: word.noun, sub: word.tr, answer: word.article, after: word.head, word,
+      options: [{ value: "der", cls: "der" }, { value: "die", cls: "die" }, { value: "das", cls: "das" }], cols: true,
+    }));
+  }
+
+  function wkLinkItems(words) {
+    const heads = words.map((word) => word.head);
+    const families = words.flatMap((word) => word.fam);
+    const strong = [], family = [];
+    for (const word of words) {
+      const related = [word.head, ...word.syn, ...word.ant];
+      for (const [key, question] of [["ant", "wk_q_ant"], ["syn", "wk_q_syn"]]) {
+        if (!word[key].length) continue;
+        strong.push({ prompt: word.head, sub: t(question), answer: word[key][0], after: word.tr, word, options: wkOptions(word[key][0], heads.filter((head) => !related.includes(head)), 4) });
+      }
+      if (word.fam.length) {
+        const pool = families.filter((other) => !word.fam.includes(other) && other !== word.head);
+        family.push({ prompt: word.head, sub: t("wk_q_fam"), answer: word.fam[0], after: word.tr, word, options: wkOptions(word.fam[0], pool, 4) });
+      }
+    }
+    return [...wkPick(strong, WK_ROUND), ...wkPick(family, WK_ROUND)].slice(0, WK_ROUND);
+  }
+
+  function wkTypeItems(words) {
+    return words.filter((word) => word.type).map((word) => ({
+      typed: true, prompt: word.tr, sub: t(word.noun ? "wk_type_noun" : "wk_type"), answer: word.type, after: word.ex, word,
+    }));
+  }
+
+  function wkMeaningItems(words) {
+    const meanings = words.map((word) => word.tr);
+    return words.map((word) => ({ prompt: word.head, sub: t("wk_q_meaning"), answer: word.tr, after: word.ex, word, options: wkOptions(word.tr, meanings, 4) }));
+  }
+
+  function wkWordItems(words) {
+    const heads = words.map((word) => word.head);
+    return words.map((word) => ({ prompt: word.tr, sub: t("wk_q_word"), answer: word.head, after: word.ex, word, options: wkOptions(word.head, heads, 4) }));
+  }
+
+  // Typed answers: case and ä/ae don't matter; one slip in a longer word is forgiven and shown.
+  const wkNorm = (text) => text.trim().toLowerCase().replace(/\s+/g, " ").replace(/ä/g, "ae").replace(/ö/g, "oe").replace(/ü/g, "ue").replace(/ß/g, "ss");
+  function wkDistance(a, b) {
+    const rows = [Array.from({ length: b.length + 1 }, (_, i) => i)];
+    for (let i = 1; i <= a.length; i++) {
+      rows.push([i]);
+      for (let j = 1; j <= b.length; j++) {
+        let cost = Math.min(rows[i - 1][j] + 1, rows[i][j - 1] + 1, rows[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+        if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) cost = Math.min(cost, rows[i - 2][j - 2] + 1);
+        rows[i].push(cost);
+      }
+    }
+    return rows[a.length][b.length];
+  }
+  function wkCheckTyped(item, given) {
+    const typed = wkNorm(given), right = wkNorm(item.answer);
+    if (typed === right) return { ok: true };
+    if (item.word.noun) {
+      const [article, ...rest] = typed.split(" ");
+      if (article !== item.word.article) return { ok: false };
+      const noun = wkNorm(item.word.noun);
+      return { ok: noun.length >= 6 && wkDistance(rest.join(" "), noun) === 1, typo: true };
+    }
+    return { ok: right.length >= 6 && wkDistance(typed, right) === 1, typo: true };
+  }
+
+  VIEWS.wkStep = ({ level, lesson, step }, entry) => {
+    const info = wkLevel(level);
+    title(`${t(`wk_s_${step}`)} · L${lesson}`);
+    loading(entry, () => wkWords(level, lesson), (words) => {
+      const flag = wkFlagHandler(level, lesson);
+
+      const finish = async (right, total) => {
+        const pass = state.me.wortkiste.pass;
+        const percent = Math.round((100 * right) / total);
+        const passed = step !== "cards" && percent >= pass;
+        const numbers = info.lessons.map((item) => item.n);
+        const next = numbers[numbers.indexOf(lesson) + 1];
+        haptic(passed || step === "cards" ? "success" : "error");
+        doneScreen({
+          emoji: step === "cards" ? "🎉" : passed ? "🏆" : "💪",
+          headline: step === "cards" ? t("wk_cards_done") : `${percent}%`,
+          lines: step === "cards" ? [t("wk_cards_next")] : [t("wk_right_of", { right, total }), t(passed ? "wk_passed" : "wk_not_yet", { n: pass })],
+          buttons: [
+            ...(passed && next ? [{ act: "next", label: t("wk_next_lesson") }] : []),
+            { act: "again", label: t("again") },
+            { act: "back", label: t("wk_to_lesson") },
+          ],
+        });
+        handlers = { again: show, back, next: () => { stack.pop(); swap("wkLesson", { level, lesson: next }); } };
+        try {
+          const result = await api("wk_result", { level, lesson, step, right, total });
+          state.me.wortkiste.levels = result.levels;
+          state.me.progress = result.progress;
+          drawStreak();
+        } catch (error) {
+          toast(t("err_save"));
+        }
+      };
+
+      // 1. Cards: meet the word, turn it over, say how well you knew it. A missed card comes back.
+      const cards = () => {
+        const queue = words.slice();
+        const total = queue.length;
+        let learned = 0, revealed = false;
+        const links = (word) => [["fam", "wk_fam"], ["syn", "wk_syn"], ["ant", "wk_ant"]].filter(([key]) => word[key].length)
+          .map(([key, label]) => `<div class="link"><span class="tag ${key}">${esc(t(label))}</span>${esc(word[key].join(", "))}</div>`).join("");
+        const draw = () => {
+          if (!queue.length) return finish(total, total);
+          const word = queue[0];
+          view.className = "session";
+          view.innerHTML = `
+            <div class="session-top">${bar(learned, total)}<em>${learned}/${total}</em>${revealed ? wkFlag(word) : ""}</div>
+            <div class="card wk ${revealed ? "open" : ""}" data-act="reveal">
+              <span class="card-word">${esc(word.head)}</span>
+              ${revealed ? `
+                ${word.entry !== word.head ? `<span class="card-grammar">${esc(word.entry)}</span>` : ""}
+                <span class="card-tr">${esc(word.tr)}</span>
+                <span class="card-ex">${esc(word.ex)}</span>
+                ${links(word)}
+                ${word.phr ? `<div class="link phr"><b>${esc(word.phr.de)}</b><small>${esc(word.phr.tr)}</small></div>` : ""}`
+                : `<span class="card-hint">${esc(t("wk_card_hint"))}</span>`}
+            </div>
+            <div class="session-bottom">
+              ${revealed ? `<div class="rate">
+                  <button class="btn bad" data-act="rate" data-r="bad">${esc(t("rate_bad"))}</button>
+                  <button class="btn unsure" data-act="rate" data-r="unsure">${esc(t("rate_unsure"))}</button>
+                  <button class="btn good" data-act="rate" data-r="good">${esc(t("rate_good"))}</button>
+                </div>` : `<button class="btn" data-act="reveal">${esc(t("show"))}</button>`}
+            </div>`;
+        };
+        handlers = {
+          flag,
+          reveal: () => { if (!revealed) { revealed = true; haptic("tap"); draw(); } },
+          rate: (data) => {
+            const word = queue.shift();
+            if (data.r === "good") learned += 1;
+            else queue.splice(Math.min(data.r === "bad" ? ROUND_GAP_BAD : ROUND_GAP_UNSURE, queue.length), 0, word);
+            revealed = false;
+            haptic("tap");
+            draw();
+          },
+        };
+        draw();
+      };
+
+      // 2-4 and the test: one question at a time. With `repeat`, a missed one comes back later;
+      // the score is what was right at the first try.
+      const questions = (items, repeat) => {
+        const queue = items.slice();
+        const total = queue.length;
+        let done = 0, right = 0, answered = null;
+        const seen = new Set();
+
+        const draw = () => {
+          if (!queue.length) return finish(right, total);
+          const item = queue[0];
+          const state2 = answered ? (answered.ok ? "right" : "wrong") : "";
+          view.className = "session";
+          view.innerHTML = `
+            <div class="session-top">${bar(done, total)}<em>${Math.min(done + 1, total)}/${total}</em>${answered ? wkFlag(item.word) : ""}</div>
+            <div class="card static wk ${state2}">
+              <span class="card-hint">${esc(item.sub)}</span>
+              <span class="card-word">${esc(item.prompt)}</span>
+              ${answered ? `<span class="card-tr">${esc(item.answer)}</span>
+                ${answered.typo && answered.ok ? `<span class="card-ex">✏️ ${esc(t("wk_typo"))}</span>` : ""}
+                ${answered.given != null && !answered.ok ? `<s>${esc(answered.given || "—")}</s>` : ""}
+                <span class="card-ex">${esc(item.after)}</span>` : ""}
+            </div>
+            <div class="session-bottom">
+              ${item.typed
+                ? (answered ? "" : `<form class="typing" data-form autocomplete="off">
+                    <input name="answer" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="done" placeholder="Deutsch">
+                    <button class="btn" type="submit">${esc(t("check"))}</button>
+                  </form>`)
+                : `<div class="choices ${item.cols ? "" : "col"}">
+                    ${item.options.map((option) => `<button class="btn choice ${option.cls || ""} ${answered && option.value === item.answer ? "is-right" : ""} ${answered && option.value === answered.given && !answered.ok ? "is-wrong" : ""}"
+                      data-act="pick" data-v="${esc(option.value)}" ${answered ? "disabled" : ""}>${esc(option.value)}</button>`).join("")}
+                  </div>`}
+              ${answered && (!answered.ok || item.typed) ? `<button class="btn ${item.typed ? "" : "ghost"}" data-act="next">${esc(t("next"))}</button>` : ""}
+            </div>`;
+          const form = view.querySelector("form");
+          if (form) {
+            form.answer.focus({ preventScroll: true });
+            form.addEventListener("submit", (event) => { event.preventDefault(); settle({ ...wkCheckTyped(item, form.answer.value), given: form.answer.value.trim() }); });
+          } else if (answered && item.typed) {
+            view.querySelector("[data-act=next]").focus({ preventScroll: true });
+          }
+        };
+
+        const settle = (result) => {
+          if (answered) return;
+          answered = result;
+          const item = queue[0];
+          if (!seen.has(item) && result.ok) right += 1;
+          seen.add(item);
+          haptic(result.ok ? "success" : "error");
+          draw();
+          if (result.ok && !item.typed) setTimeout(() => { if (current() === entry && answered === result) advance(); }, 700);
+        };
+
+        const advance = () => {
+          const item = queue.shift();
+          if (answered.ok || !repeat) done += 1;
+          else queue.splice(Math.min(ROUND_GAP_BAD, queue.length), 0, item);
+          answered = null;
+          draw();
+        };
+
+        handlers = { flag, next: advance, pick: (data) => settle({ ok: data.v === queue[0].answer, given: data.v }) };
+        draw();
+      };
+
+      // 5. Blitz: as many words as possible in a minute.
+      const blitz = () => {
+        let pool = shuffle(wkWordItems(words)), index = 0, right = 0, count = 0, left = WK_BLITZ_SECONDS, locked = false;
+        const draw = (picked) => {
+          const item = pool[index];
+          view.className = "session";
+          view.innerHTML = `
+            <div class="session-top"><span class="meter"><i style="width:${Math.round((100 * left) / WK_BLITZ_SECONDS)}%"></i></span><em id="clock">${left}s · ✓ ${right}</em></div>
+            <div class="card static wk"><span class="card-hint">${esc(item.sub)}</span><span class="card-word">${esc(item.prompt)}</span></div>
+            <div class="session-bottom"><div class="choices col">
+              ${item.options.map((option) => `<button class="btn choice ${picked && option.value === item.answer ? "is-right" : ""} ${picked === option.value && picked !== item.answer ? "is-wrong" : ""}" data-act="pick" data-v="${esc(option.value)}">${esc(option.value)}</button>`).join("")}
+            </div></div>`;
+        };
+        const timer = setInterval(() => {
+          if (current() !== entry) return clearInterval(timer);
+          left -= 1;
+          if (left <= 0) {
+            clearInterval(timer);
+            return finish(right, Math.max(count, WK_BLITZ_MIN));
+          }
+          const clock = $("clock");
+          if (clock) clock.textContent = `${left}s · ✓ ${right}`;
+          const meter = view.querySelector(".meter i");
+          if (meter) meter.style.width = `${Math.round((100 * left) / WK_BLITZ_SECONDS)}%`;
+        }, 1000);
+        handlers = {
+          pick: (data) => {
+            if (locked || left <= 0) return;
+            locked = true;
+            count += 1;
+            const ok = data.v === pool[index].answer;
+            if (ok) right += 1;
+            haptic(ok ? "tap" : "error");
+            draw(data.v);
+            setTimeout(() => {
+              if (current() !== entry || left <= 0) return;
+              index += 1;
+              if (index >= pool.length) { pool = shuffle(wkWordItems(words)); index = 0; }
+              locked = false;
+              draw();
+            }, ok ? 180 : 650);
+          },
+        };
+        draw();
+      };
+
+      if (step === "cards") cards();
+      else if (step === "articles") questions(shuffle(wkArticleItems(words)), true);
+      else if (step === "links") questions(wkLinkItems(words), true);
+      else if (step === "typing") questions(wkPick(wkTypeItems(words), WK_ROUND), true);
+      else if (step === "blitz") blitz();
+      else questions(shuffle([...wkPick(wkMeaningItems(words), 4), ...wkPick(wkArticleItems(words), 4), ...wkPick(wkLinkItems(words), 3), ...wkPick(wkTypeItems(words), 4)]), false);
     });
   };
 
