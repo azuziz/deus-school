@@ -109,7 +109,8 @@ window.DEUS_I18N = {
   lang_uz: ["O'zbekcha", "O'zbekcha", "O'zbekcha", "O'zbekcha"],
 
   lock_vocab: ["The first {n} words of every topic are free. The rest is for DEUS students.", "Die ersten {n} Wörter jedes Themas sind kostenlos. Der Rest ist für DEUS-Schüler.", "Первые {n} слов каждой темы бесплатны. Остальное — для учеников DEUS.", "Har bir mavzuning dastlabki {n} ta so'zi bepul. Qolgani DEUS o'quvchilari uchun."],
-  lock_how: ["Not learning with us yet? The trial lesson is free. Already a DEUS student? Write to us and we'll open your access.", "Du lernst noch nicht bei uns? Die Probestunde ist kostenlos. Du bist schon DEUS-Schüler? Schreib uns, und wir schalten dich frei.", "Ещё не учитесь у нас? Пробный урок бесплатный. Уже учитесь в DEUS? Напишите нам, и мы откроем доступ.", "Hali bizda o'qimaysizmi? Sinov darsi bepul. Allaqachon DEUS o'quvchisimisiz? Bizga yozing, kirishni ochib beramiz."],
+  lock_trial: ["Join a free DEUS trial class", "Kostenlose DEUS-Probestunde besuchen", "Записаться на бесплатный пробный урок DEUS", "DEUS bepul sinov darsiga yozilish"],
+  lock_msg: ["Hello! I'm a DEUS student. Please open my access in the DEUS Lernen app.", "Hallo! Ich bin DEUS-Schüler. Bitte schalte meinen Zugang in der App DEUS Lernen frei.", "Здравствуйте! Я учусь в DEUS. Откройте мне, пожалуйста, доступ в приложении DEUS Lernen.", "Assalomu alaykum! Men DEUS o'quvchisiman. Iltimos, DEUS Lernen ilovasida menga kirishni ochib bering."],
   lock_write: ["I'm already a student", "Ich bin schon Schüler", "Я уже учусь в DEUS", "Men allaqachon o'quvchiman"],
   student_badge: ["DEUS student: full access", "DEUS-Schüler: voller Zugang", "Ученик DEUS: полный доступ", "DEUS o'quvchisi: to'liq kirish"],
 

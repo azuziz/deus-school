@@ -186,12 +186,16 @@
     return `<div class="lock">
       <div class="lock-icon">🔒</div>
       <p><b>${esc(text)}</b></p>
-      <p>${esc(t("lock_how"))}</p>
-      <button class="btn" data-act="lock-trial">${esc(t("trial"))}</button>
+      <button class="btn" data-act="lock-trial">${esc(t("lock_trial"))}</button>
       <button class="btn ghost" data-act="lock-write">${esc(t("lock_write"))}</button>
     </div>`;
   }
-  const lockHandlers = { "lock-trial": () => openChat("trial"), "lock-write": () => openChat() };
+  // "I'm already a student": a chat with the teacher, with the request already typed in.
+  function askForAccess() {
+    const link = `https://t.me/${CFG.teacher}?text=${encodeURIComponent(t("lock_msg"))}`;
+    if (IN_TELEGRAM) tg.openTelegramLink(link); else window.open(link, "_blank");
+  }
+  const lockHandlers = { "lock-trial": () => openChat("trial"), "lock-write": askForAccess };
 
   function doneScreen({ emoji, headline, lines, buttons }) {
     view.className = "center";

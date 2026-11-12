@@ -5,5 +5,6 @@ window.DEUS_APP = {
   api: "https://mw2c5sew2c.execute-api.ap-south-1.amazonaws.com/Prod/app/",
   bot: "attemptobot",
   channel: "deutschesbuch",
+  teacher: "azuziz",  // "I'm already a student" opens a chat with this account
   site: "https://deus-school.com",
 };
