@@ -79,6 +79,7 @@ window.DEUS_I18N = {
   st_decks: ["Decks finished", "Decks geschafft", "Пройдено колод", "Tugatilgan to'plamlar"],
   st_levels: ["Verb levels learned", "Verb-Levels gelernt", "Уровней глаголов выучено", "O'rganilgan fe'l darajalari"],
   st_grammar: ["Grammar topics practised", "Grammatikthemen geübt", "Тем грамматики пройдено", "Mashq qilingan grammatika mavzulari"],
+  st_wk: ["Wortkiste lessons passed", "Wortkiste-Lektionen geschafft", "Пройдено уроков Wortkiste", "O'tilgan Wortkiste darslari"],
   st_words: ["Words seen", "Wörter gesehen", "Слов просмотрено", "Ko'rilgan so'zlar"],
   st_level: ["Your level", "Dein Niveau", "Ваш уровень", "Darajangiz"],
   st_level_check: ["Level check result", "Ergebnis Einstufungstest", "Результат теста уровня", "Daraja testi natijasi"],

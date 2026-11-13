@@ -241,7 +241,14 @@
       verbs: () => go("verbs"),
       grammar: () => go("grammar"),
       vocab: () => go("vocab"),
-      wk: () => go("wk"),
+      wk: () => {
+        go("wk");
+        // Straight back to the level the student used last (Back still leads to the level list).
+        let last = null;
+        try { last = localStorage.getItem("deus.wk.level"); } catch (e) { /* private mode */ }
+        const level = last && me.student && me.wortkiste.levels.find((item) => item.id === last && item.ready);
+        if (level) go("wkLevel", { level: level.id });
+      },
       articles: () => go("quiz", { kind: "articles" }),
       prepositions: () => go("quiz", { kind: "prepositions" }),
       sophie: () => openChat(),
@@ -769,6 +776,7 @@
 
   VIEWS.wkLevel = ({ level }) => {
     const info = wkLevel(level);
+    try { localStorage.setItem("deus.wk.level", level); } catch (e) { /* private mode */ }
     title(`Wortkiste · ${info.label}`);
     view.innerHTML = `
       <p class="lead">${esc(t("wk_rule", { n: state.me.wortkiste.pass }))}</p>
@@ -1106,6 +1114,7 @@
         ${stat(`${me.verbs.learned.length}/${me.verbs.parts.length}`, t("st_levels"))}
         ${stat(Object.keys(me.grammar.done).length, t("st_grammar"))}
         ${stat(words, t("st_words"))}
+        ${me.student ? stat(me.wortkiste.levels.flatMap((item) => item.lessons).filter((lesson) => lesson.passed).length, t("st_wk")) : ""}
         ${stat(level ? levelLabel(level) : "—", t(p.level_check ? "st_level_check" : "st_level"))}
       </section>
       <h3 class="section">${esc(t("tests"))}</h3>
