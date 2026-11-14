@@ -727,8 +727,8 @@
   };
 
   // ---- Wortkiste: the course vocabulary, lesson by lesson (students only; the bot decides)
-  const WK_STEPS = ["cards", "articles", "links", "typing", "blitz", "test"];
-  const WK_ICON = { cards: "🃏", articles: "🎯", links: "🔗", typing: "✍️", blitz: "⚡", test: "🏁" };
+  const WK_STEPS = ["cards", "kol", "prep", "gaps", "links", "articles", "typing", "blitz", "test"];
+  const WK_ICON = { cards: "🃏", articles: "🎯", links: "🔗", kol: "🤝", prep: "🧩", gaps: "✏️", typing: "✍️", blitz: "⚡", test: "🏁" };
   const WK_ROUND = 12;      // questions in the links and typing rounds
   const WK_BLITZ_SECONDS = 60;
   const WK_BLITZ_MIN = 10;  // answering fewer than this in a Blitz can't count as passed
@@ -781,7 +781,7 @@
     view.innerHTML = `
       <p class="lead">${esc(t("wk_rule", { n: state.me.wortkiste.pass }))}</p>
       <div class="list">
-        ${info.lessons.map((lesson) => row(lesson.open ? "lesson" : "locked", { n: lesson.n }, `${info.label} · Lektion ${lesson.n}`, t("wk_words", { n: lesson.words }),
+        ${info.lessons.map((lesson) => row(lesson.open ? "lesson" : "locked", { n: lesson.n }, `${info.label} · ${lesson.label}`, t("wk_words", { n: lesson.words }),
           lesson.open ? "" : `<span class="pill">🔒</span>`, lesson.passed ? { text: "✓", cls: "ok" } : { text: String(lesson.n), cls: lesson.open ? "gold" : "" })).join("")}
       </div>
       ${info.lessons.some((lesson) => !lesson.open) ? `<button class="btn ghost" data-act="place">${esc(t("wk_further"))}</button>` : ""}`;
@@ -797,7 +797,7 @@
     title(info.label);
     view.innerHTML = `
       <p class="lead">${esc(t("wk_place_q"))}</p>
-      <div class="chips wide">${info.lessons.map((lesson) => `<button class="chip ${lesson.open ? "on" : ""}" data-act="pick" data-n="${lesson.n}">Lektion ${lesson.n}</button>`).join("")}</div>
+      <div class="chips wide">${info.lessons.map((lesson) => `<button class="chip ${lesson.open ? "on" : ""}" data-act="pick" data-n="${lesson.n}">${esc(lesson.label)}</button>`).join("")}</div>
       <p class="fine">${esc(t("wk_place_note"))}</p>`;
     handlers = {
       pick: async (data) => {
@@ -814,14 +814,14 @@
 
   VIEWS.wkLesson = ({ level, lesson }) => {
     const info = wkLevel(level), mine = wkLessonInfo(level, lesson), pass = state.me.wortkiste.pass;
-    title(`${info.label} · Lektion ${lesson}`);
+    title(`${info.label} · ${mine.label}`);
     view.innerHTML = `
       <p class="lead">${esc(t(mine.passed ? "wk_lesson_passed" : "wk_rule", { n: pass }))}</p>
       <div class="list">
         ${WK_STEPS.filter((step) => mine.steps.includes(step)).map((step) => {
           const best = mine.best[step];
           const pill = best == null ? "" : `<span class="pill ${step !== "cards" && best >= pass ? "ok" : ""}">${step === "cards" ? "✓" : `${best}%`}</span>`;
-          return row("step", { step }, t(`wk_s_${step}`), t(`wk_d_${step}`), pill, { text: WK_ICON[step] });
+          return row("step", { step }, t(`wk_s_${step}`), t(info.german && step === "typing" ? "wk_d_typing_de" : `wk_d_${step}`), pill, { text: WK_ICON[step] });
         }).join("")}
       </div>`;
     handlers = { step: (data) => go("wkStep", { level, lesson, step: data.step }) };
@@ -854,6 +854,26 @@
       }
     }
     return [...wkPick(strong, WK_ROUND), ...wkPick(family, WK_ROUND)].slice(0, WK_ROUND);
+  }
+
+  // From B2 on (German-only cards): word partners, fixed prepositions, gap sentences.
+  const WK_PREPOSITIONS = ["an", "auf", "aus", "bei", "für", "gegen", "in", "mit", "nach", "über", "um", "von", "vor", "zu"];
+  function wkKolItems(words) {
+    return words.filter((word) => word.kol).map((word) => ({
+      prompt: word.kol.text, sub: t("wk_d_kol"), answer: word.kol.answer, after: word.kol.full, word, options: shuffle([word.kol.answer, ...word.kol.wrong]).map((value) => ({ value })),
+    }));
+  }
+  function wkPrepItems(words) {
+    return words.filter((word) => word.prep).map((word) => ({
+      prompt: word.prep.text, sub: t("wk_d_prep"), answer: word.prep.answer, after: word.ex, word, options: wkOptions(word.prep.answer, WK_PREPOSITIONS, 4),
+    }));
+  }
+  function wkGapItems(words) {
+    return words.filter((word) => word.gap).map((word) => {
+      const same = words.filter((other) => other.gap && other.kind === word.kind).map((other) => other.gap.answer);
+      const pool = same.length >= 4 ? same : words.filter((other) => other.gap).map((other) => other.gap.answer);
+      return { prompt: word.gap.text, sub: t("wk_d_gaps"), answer: word.gap.answer, after: word.tr, word, options: wkOptions(word.gap.answer, pool, 4) };
+    });
   }
 
   function wkTypeItems(words) {
@@ -951,6 +971,8 @@
                 ${word.entry !== word.head ? `<span class="card-grammar">${esc(word.entry)}</span>` : ""}
                 <span class="card-tr">${esc(word.tr)}</span>
                 <span class="card-ex">${esc(word.ex)}</span>
+                ${word.kol ? `<div class="link"><span class="tag kol">${esc(t("wk_kol"))}</span>${esc(word.kol.full)}</div>` : ""}
+                ${word.prep ? `<div class="link"><span class="tag kol">${esc(t("wk_s_prep"))}</span>${esc(word.prep.text.replace("___", word.prep.answer))}</div>` : ""}
                 ${links(word)}
                 ${word.phr ? `<div class="link phr"><b>${esc(word.phr.de)}</b><small>${esc(word.phr.tr)}</small></div>` : ""}`
                 : `<span class="card-hint">${esc(t("wk_card_hint"))}</span>`}
@@ -995,7 +1017,7 @@
             <div class="session-top">${bar(done, total)}<em>${Math.min(done + 1, total)}/${total}</em>${answered ? wkFlag(item.word) : ""}</div>
             <div class="card static wk ${state2}">
               <span class="card-hint">${esc(item.sub)}</span>
-              <span class="card-word">${esc(item.prompt)}</span>
+              <span class="card-word ${item.prompt.length > 30 ? "long" : ""}">${esc(item.prompt)}</span>
               ${answered ? `<span class="card-tr">${esc(item.answer)}</span>
                 ${answered.typo && answered.ok ? `<span class="card-ex">✏️ ${esc(t("wk_typo"))}</span>` : ""}
                 ${answered.given != null && !answered.ok ? `<s>${esc(answered.given || "—")}</s>` : ""}
@@ -1053,7 +1075,7 @@
           view.className = "session";
           view.innerHTML = `
             <div class="session-top"><span class="meter"><i style="width:${Math.round((100 * left) / WK_BLITZ_SECONDS)}%"></i></span><em id="clock">${left}s · ✓ ${right}</em></div>
-            <div class="card static wk"><span class="card-hint">${esc(item.sub)}</span><span class="card-word">${esc(item.prompt)}</span></div>
+            <div class="card static wk"><span class="card-hint">${esc(item.sub)}</span><span class="card-word ${item.prompt.length > 30 ? "long" : ""}">${esc(item.prompt)}</span></div>
             <div class="session-bottom"><div class="choices col">
               ${item.options.map((option) => `<button class="btn choice ${picked && option.value === item.answer ? "is-right" : ""} ${picked === option.value && picked !== item.answer ? "is-wrong" : ""}" data-act="pick" data-v="${esc(option.value)}">${esc(option.value)}</button>`).join("")}
             </div></div>`;
@@ -1095,7 +1117,11 @@
       else if (step === "articles") questions(shuffle(wkArticleItems(words)), true);
       else if (step === "links") questions(wkLinkItems(words), true);
       else if (step === "typing") questions(wkPick(wkTypeItems(words), WK_ROUND), true);
+      else if (step === "kol") questions(wkPick(wkKolItems(words), WK_ROUND), true);
+      else if (step === "prep") questions(wkPick(wkPrepItems(words), WK_ROUND), true);
+      else if (step === "gaps") questions(wkPick(wkGapItems(words), WK_ROUND), true);
       else if (step === "blitz") blitz();
+      else if (info.german) questions(shuffle([...wkPick(wkKolItems(words), 3), ...wkPick(wkPrepItems(words), 3), ...wkPick(wkGapItems(words), 4), ...wkPick(wkLinkItems(words), 2), ...wkPick(wkArticleItems(words), 2), ...wkPick(wkTypeItems(words), 3), ...wkPick(wkMeaningItems(words), 6)].slice(0, 15)), false);
       else questions(shuffle([...wkPick(wkMeaningItems(words), 4), ...wkPick(wkArticleItems(words), 4), ...wkPick(wkLinkItems(words), 3), ...wkPick(wkTypeItems(words), 4)]), false);
     });
   };

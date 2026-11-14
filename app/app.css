@@ -264,6 +264,7 @@ input::placeholder { color: var(--muted); opacity: .7; }
 .card.wk.right .card-hint, .card.wk.wrong .card-hint { font-size: 15px; font-weight: 400; color: var(--muted); }
 .link { font-size: 14px; max-width: 36ch; }
 .link .tag { display: inline-block; margin-right: 6px; padding: 1px 8px; border-radius: 99px; color: #fff; letter-spacing: .04em; }
+.tag.kol { background: #b8860b; } .card-word.long { font-size: 19px; line-height: 1.35; font-weight: 600; }
 .tag.fam { background: var(--blue); } .tag.syn { background: var(--green); } .tag.ant { background: var(--red); }
 .link.phr { display: grid; gap: 2px; padding: 10px 12px; border-radius: 12px; background: var(--gold-soft); }
 .link.phr small { color: var(--muted); }
