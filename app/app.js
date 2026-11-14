@@ -1132,8 +1132,9 @@
   const FA_STEPS = {
     notes: ["📖", "Grammar", "Read the unit's rules"], letters: ["🔡", "Letters", "The new letters"],
     sounds: ["🔊", "Sounds", "Letter ↔ sound"], cards: ["🃏", "Words", "Vocabulary cards"],
+    bridge: ["🇺🇿", "Uzbek bridge", "The Uzbek word → its Persian relative"],
     read: ["👁", "Reading", "How is it read?"], spell: ["🧩", "Spelling", "Put the letters in order"],
-    meaning: ["🇩🇪", "Meaning", "Persian → German"], reverse: ["🇮🇷", "Recall", "German → Persian"],
+    meaning: ["💡", "Meaning", "Persian → English"], reverse: ["🇮🇷", "Recall", "English → Persian"],
     numbers: ["🔢", "Numbers", "Digits ↔ words"], stems: ["🌱", "Present stems", "Infinitive → stem"],
     conj: ["⚙️", "Verb forms", "Pick the right form"], spoken: ["🗣", "Spoken → written", "Colloquial forms"],
     compound: ["🔗", "Compound verbs", "Light verb and preposition"], build: ["🧱", "Sentences", "Put the words in order"],
@@ -1146,7 +1147,7 @@
     title("Farsi");
     view.innerHTML = `<div class="list">${state.me.farsi.units.map((unit) => {
       const done = unit.steps.filter((step) => step.best != null).length;
-      return row("unit", { n: unit.n }, `${unit.n} · ${unit.de}`, unit.title, `<span class="count">${done}/${unit.steps.length}</span>`,
+      return row("unit", { n: unit.n }, `${unit.n} · ${unit.en}`, unit.title, `<span class="count">${done}/${unit.steps.length}</span>`,
         unit.passed ? { text: "✓", cls: "ok" } : { text: String(unit.n) });
     }).join("")}</div>`;
     handlers = { unit: (data) => go("faUnit", { n: Number(data.n) }) };
@@ -1154,7 +1155,7 @@
 
   VIEWS.faUnit = ({ n }) => {
     const unit = faUnit(n);
-    title(`${n} · ${unit.de}`);
+    title(`${n} · ${unit.en}`);
     view.innerHTML = `<div class="list">${unit.steps.map((step) => {
       const [icon, name, sub] = FA_STEPS[step.id];
       const right = step.best == null ? "" : `<span class="pill ${step.id === "test" && step.best < state.me.farsi.pass ? "red" : "ok"}">${["notes", "letters", "cards"].includes(step.id) ? "✓" : `${step.best}%`}</span>`;
