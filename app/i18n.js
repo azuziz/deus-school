@@ -22,7 +22,7 @@ window.DEUS_I18N = {
   grammar: ["Grammar", "Grammatik", "Грамматика", "Grammatika"],
   grammar_sub: ["Rules and practice, A1–C1", "Regeln und Übungen, A1–C1", "Правила и упражнения, A1–C1", "Qoidalar va mashqlar, A1–C1"],
   vocab: ["Vocabulary Booster", "Wortschatz-Booster", "Прокачка лексики", "Lug'atni boyitish"],
-  vocab_sub: ["Words by topic, B1–C1", "Wörter nach Themen, B1–C1", "Слова по темам, B1–C1", "Mavzular bo'yicha so'zlar, B1–C1"],
+  vocab_sub: ["B2–C1 words for every topic", "B2–C1 Wörter zu jedem Thema", "Слова B2–C1 на любую тему", "Har bir mavzu uchun B2–C1 so'zlari"],
   articles: ["Articles", "Artikel", "Артикли", "Artikllar"],
   prepositions: ["Prepositions", "Präpositionen", "Предлоги", "Predloglar"],
   sophie: ["Chat with Sophie", "Chat mit Sophie", "Чат с Софией", "Sofiya bilan chat"],
@@ -109,15 +109,13 @@ window.DEUS_I18N = {
   lang_ru: ["Русский", "Русский", "Русский", "Русский"],
   lang_uz: ["O'zbekcha", "O'zbekcha", "O'zbekcha", "O'zbekcha"],
 
-  lock_vocab: ["The first {n} words of every topic are free. The rest is for DEUS students.", "Die ersten {n} Wörter jedes Themas sind kostenlos. Der Rest ist für DEUS-Schüler.", "Первые {n} слов каждой темы бесплатны. Остальное — для учеников DEUS.", "Har bir mavzuning dastlabki {n} ta so'zi bepul. Qolgani DEUS o'quvchilari uchun."],
-  lock_trial: ["Join a free DEUS trial class", "Kostenlose DEUS-Probestunde besuchen", "Записаться на бесплатный пробный урок DEUS", "DEUS bepul sinov darsiga yozilish"],
+  lock_trial: ["Join the school", "Schüler werden", "Хочу учиться в DEUS", "DEUSda o'qimoqchiman"],
   lock_msg: ["Hello! I'm a DEUS student. Please open my access in the DEUS Lernen app.", "Hallo! Ich bin DEUS-Schüler. Bitte schalte meinen Zugang in der App DEUS Lernen frei.", "Здравствуйте! Я учусь в DEUS. Откройте мне, пожалуйста, доступ в приложении DEUS Lernen.", "Assalomu alaykum! Men DEUS o'quvchisiman. Iltimos, DEUS Lernen ilovasida menga kirishni ochib bering."],
-  lock_write: ["I'm already a student", "Ich bin schon Schüler", "Я уже учусь в DEUS", "Men allaqachon o'quvchiman"],
+  lock_write: ["I'm a student", "Ich bin Schüler", "Я учусь в DEUS", "Men DEUSda o'qiyman"],
   student_badge: ["DEUS student: full access", "DEUS-Schüler: voller Zugang", "Ученик DEUS: полный доступ", "DEUS o'quvchisi: to'liq kirish"],
 
   wk_sub: ["Course words, lesson by lesson", "Kurswortschatz, Lektion für Lektion", "Слова курса, урок за уроком", "Kurs so'zlari, darsma-dars"],
   wk_intro: ["The words of your course, lesson by lesson: cards, articles, connections, typing and a test.", "Die Wörter aus deinem Kurs, Lektion für Lektion: Karten, Artikel, Verbindungen, Schreiben und ein Test.", "Слова вашего курса, урок за уроком: карточки, артикли, связи между словами, письмо и тест.", "Kursingiz so'zlari, darsma-dars: kartochkalar, artikllar, so'zlar orasidagi bog'lanishlar, yozish va test."],
-  wk_lock: ["The Wortkiste is for DEUS students.", "Die Wortkiste ist für DEUS-Schüler.", "Wortkiste — для учеников DEUS.", "Wortkiste DEUS o'quvchilari uchun."],
   wk_soon: ["Coming soon", "Kommt bald", "Скоро", "Tez orada"],
   wk_lessons: ["Lessons: {n}", "Lektionen: {n}", "Уроков: {n}", "Darslar: {n}"],
   wk_words: ["Words: {n}", "Wörter: {n}", "Слов: {n}", "So'zlar: {n}"],
@@ -170,6 +168,11 @@ window.DEUS_I18N = {
   wk_flag_sent: ["Thank you! We'll check this word.", "Danke! Wir prüfen dieses Wort.", "Спасибо! Мы проверим это слово.", "Rahmat! Bu so'zni tekshiramiz."],
   wk_flag_limit: ["That's enough reports for today. Thank you!", "Das sind genug Meldungen für heute. Danke!", "На сегодня достаточно сообщений. Спасибо!", "Bugunga xabarlar yetarli. Rahmat!"],
 
+  lock_students: ["Special training – for DEUS students only.", "Spezialtraining – nur für DEUS-Schüler.", "Специальный раздел — только для учеников DEUS.", "Maxsus bo'lim — faqat DEUS o'quvchilari uchun."],
+  exercises: ["Exercises", "Übungen", "Упражнения", "Mashqlar"],
+  mode_cards_sub: ["Recall the forms, turn the card over, rate yourself", "Formen überlegen, Karte umdrehen, einschätzen", "Вспомните формы, переверните карточку, оцените себя", "Shakllarni eslang, kartani aylantiring, o'zingizni baholang"],
+  mode_typing_sub: ["Write the forms yourself, as in the test", "Formen selbst schreiben, wie im Test", "Напишите формы сами, как в тесте", "Shakllarni o'zingiz yozing, testdagidek"],
+  vocab_continue: ["Continue where you stopped", "Hier weitermachen", "Продолжить с того же места", "To'xtagan joydan davom etish"],
   gate: ["This app runs inside Telegram. Opening it there now…", "Diese App läuft in Telegram. Sie wird dort jetzt geöffnet …", "Это приложение работает в Telegram. Сейчас оно откроется там…", "Bu ilova Telegram ichida ishlaydi. Hozir u yerda ochiladi…"],
   gate_open: ["Open DEUS Lernen in Telegram", "DEUS Lernen in Telegram öffnen", "Открыть DEUS Lernen в Telegram", "DEUS Lernen'ni Telegramda ochish"],
 };

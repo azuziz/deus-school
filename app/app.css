@@ -251,7 +251,9 @@ input::placeholder { color: var(--muted); opacity: .7; }
 .lock-icon { font-size: 30px; line-height: 1; }
 .lock p { max-width: 34ch; font-size: 15px; }
 .lock .btn { margin-top: 2px; }
-.lock .btn.ghost { border-color: rgba(128, 128, 128, .35); }
+.lock .btn { background: var(--card); color: var(--ink); border: 1.5px solid rgba(128, 128, 128, .35); }
+.tile { position: relative; }
+.tile-lock { position: absolute; top: 12px; right: 12px; font-size: 14px; }
 .badge { padding: 12px 14px; border-radius: 14px; background: var(--gold-soft); font-weight: 700; text-align: center; }
 
 /* ---- Wortkiste */

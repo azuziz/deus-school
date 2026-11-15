@@ -81,7 +81,99 @@
 
   function current() { return stack[stack.length - 1]; }
 
-  function show() {
+  // ---- where the student stopped: the app reopens there, and each tile reopens its section there.
+  // `open` is the screen the app was closed on (the screens below the home screen; empty on it);
+  // `paths` keeps, per section, the deepest screen last gone *into* - walking back out with Back
+  // doesn't erase it. Exercises in progress aren't kept: one reopens on the screen it was started from.
+  const PLACE_KEY = "deus.place";
+  const SECTIONS = ["verbs", "grammar", "vocab", "wk", "fa"];
+  const KEPT_VIEWS = ["verbs", "part", "grammar", "topic", "vocab", "wk", "wkLevel", "wkLesson", "fa", "faUnit"];
+  const cloud = IN_TELEGRAM && tg.CloudStorage && tg.isVersionAtLeast && tg.isVersionAtLeast("6.9") ? tg.CloudStorage : null;
+  let place = { open: [], paths: {}, topic: null };
+  let placeTimer = 0;
+
+  function parsePlace(text) {
+    try {
+      const saved = JSON.parse(text);
+      if (saved && typeof saved === "object") return { open: Array.isArray(saved.open) ? saved.open : [], paths: saved.paths || {}, topic: saved.topic || null };
+    } catch (e) { /* not ours */ }
+    return null;
+  }
+
+  /** This phone's copy first; on a new phone, the copy Telegram keeps for the account. */
+  function readPlace() {
+    let local = null;
+    try {
+      local = parsePlace(localStorage.getItem(PLACE_KEY));
+      const level = !local && localStorage.getItem("deus.wk.level"); // the older, Wortkiste-only memory
+      if (level) local = { open: [], paths: { wk: [{ view: "wk", params: {} }, { view: "wkLevel", params: { level } }] }, topic: null };
+    } catch (e) { /* private mode */ }
+    if (local || !cloud) return Promise.resolve(local);
+    return new Promise((resolve) => {
+      const timer = setTimeout(() => resolve(null), 800);
+      try {
+        cloud.getItem(PLACE_KEY, (error, value) => { clearTimeout(timer); resolve(error ? null : parsePlace(value)); });
+      } catch (e) { clearTimeout(timer); resolve(null); }
+    });
+  }
+
+  function writePlace() {
+    const text = JSON.stringify(place);
+    try { localStorage.setItem(PLACE_KEY, text); } catch (e) { /* private mode */ }
+    clearTimeout(placeTimer);
+    if (cloud) placeTimer = setTimeout(() => { try { cloud.setItem(PLACE_KEY, text, () => {}); } catch (e) { /* older clients */ } }, 1500);
+  }
+
+  function notePlace(forward) {
+    if (!stack.length || stack[0].view !== "home") return; // the other tabs don't move the place
+    const below = [];
+    for (const entry of stack.slice(1)) {
+      if (!KEPT_VIEWS.includes(entry.view)) break;
+      below.push({ view: entry.view, params: entry.params });
+    }
+    place.open = below;
+    if (forward && below.length) place.paths[below[0].view] = below;
+    writePlace();
+  }
+
+  /** Is this saved screen still there for this person (access, lessons and topics can change)? */
+  function placeOk(entry) {
+    const me = state.me, p = (entry && entry.params) || {};
+    const lesson = () => { const level = wkLevel(p.level); return me.student && level && level.ready ? level : null; };
+    switch (entry && entry.view) {
+      case "verbs": case "grammar": return true;
+      case "part": return me.verbs.parts.some((part) => part.part === p.part);
+      case "topic": return me.grammar.topics.some((topic) => topic.id === p.id);
+      case "vocab": case "wk": return Boolean(me.student);
+      case "wkLevel": return Boolean(lesson());
+      case "wkLesson": return Boolean(lesson() && lesson().lessons.some((item) => item.n === p.lesson && item.open));
+      case "fa": return Boolean(me.farsi);
+      case "faUnit": return Boolean(me.farsi && me.farsi.units.some((unit) => unit.n === p.n));
+      default: return false;
+    }
+  }
+
+  function keptPath(entries) {
+    const path = [];
+    if (!Array.isArray(entries) || !entries.length || !SECTIONS.includes(entries[0] && entries[0].view)) return path;
+    for (const entry of entries) {
+      if (!placeOk(entry)) break;
+      path.push({ view: entry.view, params: { ...entry.params } });
+    }
+    return path;
+  }
+
+  /** Open a section from its tile: straight to where it was left, with Back leading up from there. */
+  function enter(section) {
+    const path = keptPath(place.paths[section]);
+    if (!path.length) return go(section);
+    stack.push(...path);
+    render(true);
+  }
+
+  function show() { render(false); }
+
+  function render(forward) {
     const entry = current();
     handlers = {};
     view.className = "";
@@ -98,9 +190,10 @@
       $("back").hidden = stack.length <= 1;
     }
     drawStreak();
+    notePlace(forward);
   }
 
-  function go(name, params) { stack.push({ view: name, params }); show(); }
+  function go(name, params) { stack.push({ view: name, params: params || {} }); render(true); }
   function back() { if (stack.length > 1) { stack.pop(); show(); } }
   function tab(name) { stack.length = 0; go(name); }
   function swap(name, params) { stack.pop(); go(name, params); }
@@ -181,16 +274,17 @@
     }
   }
 
-  // What someone who isn't a DEUS student sees where the free part ends (the bot decides, not the app).
-  function lockPanel(text) {
+  // What someone who isn't a DEUS student sees on a student section (the bot decides, not the app):
+  // one line and two equal buttons - neither is pushed.
+  function lockPanel() {
     return `<div class="lock">
       <div class="lock-icon">🔒</div>
-      <p><b>${esc(text)}</b></p>
+      <p><b>${esc(t("lock_students"))}</b></p>
+      <button class="btn" data-act="lock-write">${esc(t("lock_write"))}</button>
       <button class="btn" data-act="lock-trial">${esc(t("lock_trial"))}</button>
-      <button class="btn ghost" data-act="lock-write">${esc(t("lock_write"))}</button>
     </div>`;
   }
-  // "I'm already a student": a chat with the teacher, with the request already typed in.
+  // "I'm a student": a chat with the teacher, with the request already typed in.
   function askForAccess() {
     const link = `https://t.me/${CFG.teacher}?text=${encodeURIComponent(t("lock_msg"))}`;
     if (IN_TELEGRAM) tg.openTelegramLink(link); else window.open(link, "_blank");
@@ -217,12 +311,18 @@
     const vocabStarted = me.vocab.topics.filter((topic) => topic.pos > 0).length;
     const wkAll = me.wortkiste.levels.flatMap((level) => level.lessons);
     const wkPassed = wkAll.filter((lesson) => lesson.passed).length, wkLessons = me.student ? wkAll.length : 0;
-    const tile = (act, icon, name, sub, done, total) => `<button class="tile" type="button" data-act="${act}">
+    const tile = (act, icon, name, sub, done, total, locked) => `<button class="tile ${locked ? "locked" : ""}" type="button" data-act="${act}">
+        ${locked ? `<span class="tile-lock" aria-hidden="true">🔒</span>` : ""}
         <span class="tile-icon">${icon}</span>
         <b>${esc(name)}</b>
         <small>${esc(sub)}</small>
         ${total ? `<span class="tile-meter">${bar(done, total)}<em>${done}/${total}</em></span>` : ""}
       </button>`;
+    // DEUS students get the course tools (Booster, Wortkiste) and no loose extras; everyone else
+    // gets the open exercises, and sees the two student sections with a lock.
+    const forStudents = (locked) => `
+        ${tile("vocab", "🧠", t("vocab"), t("vocab_sub"), vocabStarted, locked ? 0 : me.vocab.topics.length, locked)}
+        ${tile("wk", "📦", "Wortkiste", t("wk_sub"), wkPassed, wkLessons, locked)}`;
     view.innerHTML = `
       <section class="hello">
         <p class="kicker">${esc(t(me.progress.practised_today ? "today_done" : "today_todo"))}</p>
@@ -231,29 +331,22 @@
       <section class="tiles">
         ${tile("verbs", "🔤", t("verbs"), t("verbs_sub"), me.verbs.learned.length, me.verbs.parts.length)}
         ${tile("grammar", "📘", t("grammar"), t("grammar_sub"), grammarDone, me.grammar.topics.length)}
-        ${tile("vocab", "🧠", t("vocab"), t("vocab_sub"), vocabStarted, me.vocab.topics.length)}
-        ${tile("wk", "📦", "Wortkiste", t("wk_sub"), wkPassed, wkLessons)}
+        ${me.student ? forStudents(false) : `
         ${tile("articles", "🎯", t("articles"), "der · die · das")}
         ${tile("prepositions", "🧭", t("prepositions"), "Akkusativ · Dativ · Genitiv")}
         ${tile("sophie", "💬", t("sophie"), t("sophie_sub"))}
+        ${forStudents(true)}`}
         ${me.farsi ? tile("fa", "🇮🇷", "Farsi", "فارسی · unit by unit", me.farsi.units.filter((unit) => unit.passed).length, me.farsi.units.length) : ""}
       </section>`;
     handlers = {
-      verbs: () => go("verbs"),
-      grammar: () => go("grammar"),
-      vocab: () => go("vocab"),
-      wk: () => {
-        go("wk");
-        // Straight back to the level the student used last (Back still leads to the level list).
-        let last = null;
-        try { last = localStorage.getItem("deus.wk.level"); } catch (e) { /* private mode */ }
-        const level = last && me.student && me.wortkiste.levels.find((item) => item.id === last && item.ready);
-        if (level) go("wkLevel", { level: level.id });
-      },
+      verbs: () => enter("verbs"),
+      grammar: () => enter("grammar"),
+      vocab: () => enter("vocab"),
+      wk: () => enter("wk"),
       articles: () => go("quiz", { kind: "articles" }),
       prepositions: () => go("quiz", { kind: "prepositions" }),
       sophie: () => openChat(),
-      fa: () => go("fa"),
+      fa: () => enter("fa"),
     };
   };
 
@@ -284,10 +377,12 @@
     title(`${t("level")} ${part}`);
     loading(entry, loadContent, (content) => {
       const verbs = content.verbs.filter((verb) => verb.part === part);
+      // Two exercises of equal weight, drawn the same way (like the steps of a Wortkiste lesson).
       view.innerHTML = `
-        <div class="actions two">
-          <button class="btn" data-act="cards">${esc(t("mode_cards"))}</button>
-          <button class="btn ghost" data-act="typing">${esc(t("mode_typing"))}</button>
+        <h3 class="section">${esc(t("exercises"))}</h3>
+        <div class="list">
+          ${row("cards", {}, t("mode_cards"), t("mode_cards_sub"), state.me.verbs.learned.includes(part) ? `<span class="pill ok">✓</span>` : "", { text: "🃏" })}
+          ${row("typing", {}, t("mode_typing"), t("mode_typing_sub"), "", { text: "✍️" })}
         </div>
         <h3 class="section">${esc(t("verbs_count", { n: verbs.length }))}</h3>
         <div class="verbs">
@@ -501,7 +596,7 @@
               ${options.map((option) => `<button class="btn choice ${option.cls || ""} ${answered && option.value === item.answer ? "is-right" : ""} ${answered && option.value === picked && picked !== item.answer ? "is-wrong" : ""}"
                 data-act="pick" data-v="${esc(option.value)}" ${answered ? "disabled" : ""}>${esc(option.label || option.value)}</button>`).join("")}
             </div>
-            <button class="btn ghost" data-act="next" ${answered && picked !== item.answer ? "" : "hidden"}>${esc(t("next"))}</button>
+            <button class="btn" data-act="next" ${answered ? "" : "hidden"}>${esc(t("next"))}</button>
           </div>`;
       };
 
@@ -529,10 +624,8 @@
         pick: (data) => {
           if (picked !== null) return;
           picked = data.v;
-          const right = picked === queue[0].answer;
-          haptic(right ? "success" : "error");
-          draw();
-          if (right) setTimeout(() => { if (current() === entry && picked !== null) advance(); }, 650);
+          haptic(picked === queue[0].answer ? "success" : "error");
+          draw(); // right or wrong, the answer stays up until "Next"
         },
         next: advance,
       };
@@ -545,11 +638,12 @@
     const grammar = state.me.grammar;
     title(t("grammar"));
     const known = (state.me.progress.level_check || state.me.progress.level || "").toUpperCase();
-    if (!entry.level) entry.level = grammar.levels.includes(known) ? known : grammar.levels[0];
+    // The level last looked at is part of the place the app remembers; the first time it's the student's own.
+    if (!grammar.levels.includes(params.level)) params.level = grammar.levels.includes(known) ? known : grammar.levels[0];
     const draw = () => {
-      const topics = grammar.topics.filter((topic) => topic.level === entry.level);
+      const topics = grammar.topics.filter((topic) => topic.level === params.level);
       view.innerHTML = `
-        <div class="chips">${grammar.levels.map((level) => `<button class="chip ${level === entry.level ? "on" : ""}" data-act="level" data-level="${level}">${level}</button>`).join("")}</div>
+        <div class="chips">${grammar.levels.map((level) => `<button class="chip ${level === params.level ? "on" : ""}" data-act="level" data-level="${level}">${level}</button>`).join("")}</div>
         <div class="list">
           ${topics.map((topic) => {
             const done = grammar.done[topic.id];
@@ -558,7 +652,7 @@
         </div>`;
     };
     handlers = {
-      level: (data) => { entry.level = data.level; haptic("tap"); draw(); },
+      level: (data) => { params.level = data.level; haptic("tap"); draw(); notePlace(true); },
       topic: (data) => go("topic", { id: data.id }),
     };
     draw();
@@ -603,7 +697,7 @@
           <div class="session-top">${bar(index + (answered ? 1 : 0), tasks.length)}<em>${index + 1}/${tasks.length}</em></div>
           <div class="task ${answered ? (correct ? "right" : "wrong") : ""}">
             <p class="task-q">${esc(answered ? task.solution : task.q)}</p>
-            ${answered && !correct ? `<p class="note">💡 ${esc(task.hint)}</p>` : ""}
+            ${answered && task.hint ? `<p class="note">💡 ${esc(task.hint)}</p>` : ""}
           </div>
           <div class="session-bottom">
             <div class="choices col">
@@ -654,9 +748,15 @@
   VIEWS.vocab = (params, entry) => {
     const vocab = state.me.vocab;
     title(t("vocab"));
+    if (!state.me.student) {
+      view.innerHTML = `<p class="lead">${esc(t("vocab_intro"))}</p>${lockPanel()}`;
+      handlers = { ...lockHandlers };
+      return;
+    }
+    const last = vocab.topics.find((topic) => topic.id === place.topic && topic.pos < topic.total);
     view.innerHTML = `
       <p class="lead">${esc(t("vocab_intro"))}</p>
-      ${state.me.student ? "" : `<p class="fine">🔒 ${esc(t("lock_vocab", { n: vocab.free }))}</p>`}
+      ${last ? `<div class="list">${row("topic", { id: last.id }, last.name, t("vocab_continue"), `<span class="count">${last.pos}/${last.total}</span>`, { text: "▶", cls: "gold" })}</div>` : ""}
       <form class="search" data-form><input type="search" placeholder="${esc(t("vocab_search"))}" value="${esc(entry.query || "")}" autocapitalize="off" autocorrect="off" enterkeyhint="search"></form>
       <div class="list" id="topics"></div>`;
     const input = view.querySelector("input");
@@ -666,8 +766,7 @@
       const topics = ids ? ids.map((id) => vocab.topics.find((topic) => topic.id === id)).filter(Boolean)
         : vocab.topics.filter((topic) => !query || fold(topic.name).includes(query));
       list.innerHTML = topics.length
-        ? topics.map((topic) => row("topic", { id: topic.id }, topic.name, "",
-            !state.me.student && topic.pos >= vocab.free ? `<span class="pill">🔒</span>` : topic.pos ? `<span class="count">${topic.pos}/${topic.total}</span>` : "")).join("")
+        ? topics.map((topic) => row("topic", { id: topic.id }, topic.name, "", topic.pos ? `<span class="count">${topic.pos}/${topic.total}</span>` : "")).join("")
         : `<div class="empty"><p>${esc(t("vocab_none"))}</p></div>`;
     };
     const search = async () => {
@@ -698,21 +797,15 @@
     const topic = state.me.vocab.topics.find((item) => item.id === id);
     title(topic ? topic.name : t("vocab"));
     loading(entry, () => api("vocab_set", { id }), (result) => {
-      if (topic) { topic.pos = result.pos; topic.total = result.total; }
-      const finished = result.pos >= result.total;
-      if (result.locked || result.more_locked) {
-        view.innerHTML = `
-          <div class="words">
-            ${result.entries.map((word) => `<div class="word k-${esc(word.kind)}">
-              <span class="tag">${esc(KIND[word.kind] || "")}</span>
-              <b>${esc(word.head)}</b>
-              <p>${esc(word.example)}</p>
-            </div>`).join("")}
-          </div>
-          ${lockPanel(t("lock_vocab", { n: state.me.vocab.free }))}`;
+      if (result.locked) { // not a DEUS student (any more)
+        view.innerHTML = lockPanel();
         handlers = { ...lockHandlers };
         return;
       }
+      if (topic) { topic.pos = result.pos; topic.total = result.total; }
+      place.topic = id; // the topic list offers it first next time
+      writePlace();
+      const finished = result.pos >= result.total;
       view.innerHTML = `
         <div class="session-top">${bar(result.pos, result.total)}<em>${result.pos}/${result.total}</em></div>
         <div class="words">
@@ -759,7 +852,7 @@
   VIEWS.wk = () => {
     title("Wortkiste");
     if (!state.me.student) {
-      view.innerHTML = `<p class="lead">${esc(t("wk_intro"))}</p>${lockPanel(t("wk_lock"))}`;
+      view.innerHTML = `<p class="lead">${esc(t("wk_intro"))}</p>${lockPanel()}`;
       handlers = { ...lockHandlers };
       return;
     }
@@ -778,7 +871,6 @@
 
   VIEWS.wkLevel = ({ level }) => {
     const info = wkLevel(level);
-    try { localStorage.setItem("deus.wk.level", level); } catch (e) { /* private mode */ }
     title(`Wortkiste · ${info.label}`);
     view.innerHTML = `
       <p class="lead">${esc(t("wk_rule", { n: state.me.wortkiste.pass }))}</p>
@@ -1035,13 +1127,13 @@
                     ${item.options.map((option) => `<button class="btn choice ${option.cls || ""} ${answered && option.value === item.answer ? "is-right" : ""} ${answered && option.value === answered.given && !answered.ok ? "is-wrong" : ""}"
                       data-act="pick" data-v="${esc(option.value)}" ${answered ? "disabled" : ""}>${esc(option.value)}</button>`).join("")}
                   </div>`}
-              ${answered && (!answered.ok || item.typed) ? `<button class="btn ${item.typed ? "" : "ghost"}" data-act="next">${esc(t("next"))}</button>` : ""}
+              ${answered ? `<button class="btn" data-act="next">${esc(t("next"))}</button>` : ""}
             </div>`;
           const form = view.querySelector("form");
           if (form) {
             form.answer.focus({ preventScroll: true });
             form.addEventListener("submit", (event) => { event.preventDefault(); settle({ ...wkCheckTyped(item, form.answer.value), given: form.answer.value.trim() }); });
-          } else if (answered && item.typed) {
+          } else if (answered) {
             view.querySelector("[data-act=next]").focus({ preventScroll: true });
           }
         };
@@ -1053,8 +1145,7 @@
           if (!seen.has(item) && result.ok) right += 1;
           seen.add(item);
           haptic(result.ok ? "success" : "error");
-          draw();
-          if (result.ok && !item.typed) setTimeout(() => { if (current() === entry && answered === result) advance(); }, 700);
+          draw(); // right or wrong, the answer and its example stay up until "Next"
         };
 
         const advance = () => {
@@ -1208,7 +1299,6 @@
         seen.add(item);
         haptic(ok ? "success" : "error");
         draw();
-        if (ok && item.t === "choice") setTimeout(() => { if (current() === entry && answered && answered.given === given) advance(); }, 650);
       };
 
       const advance = () => {
@@ -1250,7 +1340,7 @@
                 ${item.opts.map((option) => `<button class="btn choice ${item.ofa ? "fa" : ""} ${answered && option === item.a ? "is-right" : ""} ${answered && option === answered.given && !answered.ok ? "is-wrong" : ""}"
                   ${item.ofa ? 'dir="rtl"' : ""} data-act="pick" data-v="${esc(option)}" ${answered ? "disabled" : ""}>${esc(option)}</button>`).join("")}
               </div>
-              ${answered && !answered.ok ? next : ""}
+              ${answered ? next : ""}
             </div>`;
         } else {
           const built = placed.map((i) => item.tiles[i]).join(item.sep);
@@ -1297,7 +1387,7 @@
         ${stat(p.decks, t("st_decks"))}
         ${stat(`${me.verbs.learned.length}/${me.verbs.parts.length}`, t("st_levels"))}
         ${stat(Object.keys(me.grammar.done).length, t("st_grammar"))}
-        ${stat(words, t("st_words"))}
+        ${me.student ? stat(words, t("st_words")) : ""}
         ${me.student ? stat(me.wortkiste.levels.flatMap((item) => item.lessons).filter((lesson) => lesson.passed).length, t("st_wk")) : ""}
         ${stat(level ? levelLabel(level) : "—", t(p.level_check ? "st_level_check" : "st_level"))}
       </section>
@@ -1391,6 +1481,7 @@
       return;
     }
     view.innerHTML = `<div class="loading"><i></i><i></i><i></i></div>`;
+    const saved = readPlace(); // read while the bot answers
     try {
       state.me = await api("start");
     } catch (error) {
@@ -1399,7 +1490,11 @@
       return;
     }
     setLanguage(state.me.language);
-    tab("home");
+    place = (await saved) || place;
+    // Straight back to the screen the app was closed on; Back leads up to the home screen from there.
+    stack.length = 0;
+    stack.push({ view: "home", params: {} }, ...keptPath(place.open));
+    show();
     loadContent().catch(() => {}); // warm up the cards while the student looks at the home screen
   }
 
