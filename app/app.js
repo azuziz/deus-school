@@ -87,8 +87,8 @@
   // `paths` keeps, per section, the deepest screen last gone *into* - walking back out with Back
   // doesn't erase it. Exercises in progress aren't kept: one reopens on the screen it was started from.
   const PLACE_KEY = "deus.place";
-  const SECTIONS = ["verbs", "grammar", "vocab", "wk", "fa"];
-  const KEPT_VIEWS = ["verbs", "part", "grammar", "topic", "vocab", "wk", "wkLevel", "wkLesson", "fa", "faUnit"];
+  const SECTIONS = ["verbs", "grammar", "vocab", "wk"];   // separate courses add theirs (DEUS.course)
+  const KEPT_VIEWS = ["verbs", "part", "grammar", "topic", "vocab", "wk", "wkLevel", "wkLesson"];
   const cloud = IN_TELEGRAM && tg.CloudStorage && tg.isVersionAtLeast && tg.isVersionAtLeast("6.9") ? tg.CloudStorage : null;
   let place = { open: [], paths: {}, topic: null };
   let placeTimer = 0;
@@ -148,9 +148,10 @@
       case "vocab": case "wk": return Boolean(me.student);
       case "wkLevel": return Boolean(lesson());
       case "wkLesson": return Boolean(lesson() && lesson().lessons.some((item) => item.n === p.lesson && item.open));
-      case "fa": return Boolean(me.farsi);
-      case "faUnit": return Boolean(me.farsi && me.farsi.units.some((unit) => unit.n === p.n));
-      default: return false;
+      default: {
+        const course = COURSES.find((item) => item.kept.includes(entry && entry.view));
+        return Boolean(course && course.placeOk(entry));
+      }
     }
   }
 
@@ -221,6 +222,16 @@
       if (current() !== entry) return;
       view.innerHTML = `<div class="empty"><p>${esc(error.status === 401 ? t("err_auth") : t("err_net"))}</p><button class="btn" data-act="retry">${esc(t("retry"))}</button></div>`;
       handlers = { retry: show };
+    }
+  }
+
+  /** For exercise screens on a laptop: 1-9 press the n-th answer (or card rating), Enter or Space the main button. */
+  function choiceKeys(event) {
+    const press = (node) => { if (node) { event.preventDefault(); node.click(); } };
+    if (/^[1-9]$/.test(event.key)) {
+      press(view.querySelectorAll('[data-act="pick"]:not(:disabled), [data-act="rate"]')[Number(event.key) - 1]);
+    } else if (event.key === "Enter" || event.key === " ") {
+      press(view.querySelector('[data-act="next"], button[data-act="reveal"], [data-act="check"]:not(:disabled), [data-act="done"]'));
     }
   }
 
@@ -385,6 +396,14 @@
   // ------------------------------------------------------------------ views
   const VIEWS = {};
 
+  const tile = (act, icon, name, sub, done, total, locked) => `<button class="tile ${locked ? "locked" : ""}" type="button" data-act="${act}">
+      ${locked ? `<span class="tile-lock" aria-hidden="true">🔒</span>` : ""}
+      <span class="tile-icon">${icon}</span>
+      <b>${esc(name)}</b>
+      <small>${esc(sub)}</small>
+      ${total ? `<span class="tile-meter">${bar(done, total)}<em>${done}/${total}</em></span>` : ""}
+    </button>`;
+
   VIEWS.home = () => {
     const me = state.me;
     title("DEUS Lernen");
@@ -392,13 +411,6 @@
     const vocabStarted = me.vocab.topics.filter((topic) => topic.pos > 0).length;
     const wkAll = me.wortkiste.levels.flatMap((level) => level.lessons);
     const wkPassed = wkAll.filter((lesson) => lesson.passed).length, wkLessons = me.student ? wkAll.length : 0;
-    const tile = (act, icon, name, sub, done, total, locked) => `<button class="tile ${locked ? "locked" : ""}" type="button" data-act="${act}">
-        ${locked ? `<span class="tile-lock" aria-hidden="true">🔒</span>` : ""}
-        <span class="tile-icon">${icon}</span>
-        <b>${esc(name)}</b>
-        <small>${esc(sub)}</small>
-        ${total ? `<span class="tile-meter">${bar(done, total)}<em>${done}/${total}</em></span>` : ""}
-      </button>`;
     // DEUS students get the course tools (Booster, Wortkiste) and no loose extras; everyone else
     // gets the open exercises, and sees the two student sections with a lock.
     const forStudents = (locked) => `
@@ -417,7 +429,7 @@
         ${tile("prepositions", "🧭", t("prepositions"), "Akkusativ · Dativ · Genitiv")}
         ${tile("sophie", "💬", t("sophie"), t("sophie_sub"))}
         ${forStudents(true)}`}
-        ${me.farsi ? tile("fa", "🇮🇷", "Farsi", "فارسی · unit by unit", me.farsi.units.filter((unit) => unit.passed).length, me.farsi.units.length) : ""}
+        ${COURSES.map((course) => course.tile(me, tile)).join("")}
       </section>`;
     handlers = {
       verbs: () => enter("verbs"),
@@ -427,7 +439,7 @@
       articles: () => go("quiz", { kind: "articles" }),
       prepositions: () => go("quiz", { kind: "prepositions" }),
       sophie: () => openChat(),
-      fa: () => enter("fa"),
+      ...Object.fromEntries(COURSES.map((course) => [course.id, () => enter(course.id)])),
     };
   };
 
@@ -1305,182 +1317,6 @@
     });
   };
 
-  // ---- Farsi: the teacher's own Persian course (only the teacher's chat gets `me.farsi`)
-  const FA_STEPS = {
-    notes: ["📖", "Grammar", "Read the unit's rules"], letters: ["🔡", "Letters", "The new letters"],
-    sounds: ["🔊", "Sounds", "Letter ↔ sound"], cards: ["🃏", "Words", "Vocabulary cards"],
-    bridge: ["🇺🇿", "Uzbek bridge", "The Uzbek word → its Persian relative"],
-    read: ["👁", "Reading", "How is it read?"], spell: ["🧩", "Spelling", "Put the letters in order"],
-    meaning: ["💡", "Meaning", "Persian → English"], reverse: ["🇮🇷", "Recall", "English → Persian"],
-    numbers: ["🔢", "Numbers", "Digits ↔ words"], stems: ["🌱", "Present stems", "Infinitive → stem"],
-    conj: ["⚙️", "Verb forms", "Pick the right form"], spoken: ["🗣", "Spoken → written", "Colloquial forms"],
-    compound: ["🔗", "Compound verbs", "Light verb and preposition"], build: ["🧱", "Sentences", "Put the words in order"],
-    book: ["📚", "Book exercises", "Think, turn over, compare"], test: ["🏁", "Unit test", "A mix of everything"],
-  };
-  const faUnit = (n) => state.me.farsi.units.find((item) => item.n === n);
-  const fa = (text, on) => (on ? `<span class="fa" dir="rtl">${esc(text)}</span>` : esc(text));
-
-  VIEWS.fa = () => {
-    title("Farsi");
-    view.innerHTML = `<div class="list">${state.me.farsi.units.map((unit) => {
-      const done = unit.steps.filter((step) => step.best != null).length;
-      return row("unit", { n: unit.n }, `${unit.n} · ${unit.en}`, unit.title, `<span class="count">${done}/${unit.steps.length}</span>`,
-        unit.passed ? { text: "✓", cls: "ok" } : { text: String(unit.n) });
-    }).join("")}</div>`;
-    handlers = { unit: (data) => go("faUnit", { n: Number(data.n) }) };
-  };
-
-  VIEWS.faUnit = ({ n }) => {
-    const unit = faUnit(n);
-    title(`${n} · ${unit.en}`);
-    view.innerHTML = `<div class="list">${unit.steps.map((step) => {
-      const [icon, name, sub] = FA_STEPS[step.id];
-      const right = step.best == null ? "" : `<span class="pill ${step.id === "test" && step.best < state.me.farsi.pass ? "red" : "ok"}">${["notes", "letters", "cards"].includes(step.id) ? "✓" : `${step.best}%`}</span>`;
-      return row("step", { step: step.id }, name, sub, right, { text: icon });
-    }).join("")}</div>`;
-    handlers = { step: (data) => go("faStep", { n, step: data.step }) };
-  };
-
-  VIEWS.faStep = ({ n, step }, entry) => {
-    title(`${FA_STEPS[step][1]} · ${n}`);
-    const save = async (right, total) => {
-      try {
-        const result = await api("fa_result", { unit: n, step, right, total });
-        state.me.farsi.units = result.units;
-        if (result.progress) { state.me.progress = result.progress; drawStreak(); }
-        showReward(result.reward);
-      } catch (error) { toast(t("err_save")); }
-    };
-    // The next step of this unit that has not been done yet: first those after this one, then earlier ones.
-    const nextStep = () => {
-      const steps = faUnit(n).steps, at = steps.findIndex((item) => item.id === step);
-      const open = [...steps.slice(at + 1), ...steps.slice(0, at)].find((item) => item.best == null);
-      return open && open.id;
-    };
-    loading(entry, () => api("fa_step", { unit: n, step }), (payload) => {
-      if (payload.notes) {
-        view.innerHTML = payload.notes.map((note) => `<div class="panel fa-note">
-            <h3>${esc(note.point)}${note.fa ? ` <span class="fa" dir="rtl">${esc(note.fa)}</span>` : ""}</h3>
-            <p>${esc(note.rule)}</p>
-            ${note.forms ? `<pre dir="auto">${esc(note.forms)}</pre>` : ""}
-            ${note.examples.map(([text, tr, de]) => `<p class="fa-ex"><span class="fa" dir="rtl">${esc(text)}</span><small>/${esc(tr)}/ — ${esc(de)}</small></p>`).join("")}
-            ${note.pitfalls.length ? `<ul>${note.pitfalls.map((line) => `<li>${esc(line)}</li>`).join("")}</ul>` : ""}
-          </div>`).join("") + `<div class="sticky"><button class="btn" data-act="done">${esc(t("next"))}</button></div>`;
-        handlers = { done: () => { save(1, 1); const next = nextStep(); if (next) swap("faStep", { n, step: next }); else back(); } };
-        return;
-      }
-      const queue = payload.items.slice();
-      const total = queue.length;
-      const seen = new Set();
-      let done = 0, right = 0, answered = null, open = false, placed = [];
-
-      const finish = () => {
-        const percent = payload.scored ? Math.round((100 * right) / total) : 100;
-        const passed = percent >= state.me.farsi.pass;
-        const next = nextStep();
-        haptic(passed ? "success" : "error");
-        doneScreen({
-          emoji: !payload.scored ? "🎉" : passed ? "🏆" : "💪",
-          headline: payload.scored ? `${percent}%` : "Done",
-          lines: payload.scored ? [`${right} / ${total}`] : [],
-          buttons: [...(next ? [{ act: "next", label: `Next: ${FA_STEPS[next][1]}` }] : []), { act: "again", label: t("again") }, { act: "back", label: "Back to the unit" }],
-        });
-        handlers = { again: show, back, next: () => swap("faStep", { n, step: next }) };
-        save(payload.scored ? right : 1, payload.scored ? total : 1);
-      };
-
-      const settle = (ok, given) => {
-        if (answered) return;
-        const item = queue[0];
-        answered = { ok, given };
-        if (ok && !seen.has(item)) right += 1;
-        seen.add(item);
-        haptic(ok ? "success" : "error");
-        draw();
-      };
-
-      const advance = () => {
-        const item = queue.shift();
-        if (answered.ok || !payload.repeat) done += 1;
-        else queue.splice(Math.min(ROUND_GAP_BAD, queue.length), 0, item);
-        answered = null; open = false; placed = [];
-        draw();
-      };
-
-      const draw = () => {
-        if (!queue.length) return finish();
-        const item = queue[0];
-        const mood = answered ? (answered.ok ? "right" : "wrong") : "";
-        const top = `<div class="session-top">${bar(done, total)}<em>${Math.min(done + 1, total)}/${total}</em></div>`;
-        const next = `<button class="btn" data-act="next">${esc(t("next"))}</button>`;
-        view.className = "session";
-        if (item.t === "flip") {
-          view.innerHTML = `${top}
-            <div class="card wk ${open ? "open static" : ""}" data-act="reveal">
-              ${item.sub ? `<span class="card-hint">${esc(item.sub)}</span>` : ""}
-              <span class="card-word ${item.big ? "fa-big" : item.q.length > 40 ? "long" : ""}">${fa(item.q, item.qfa)}</span>
-              ${open ? item.back.filter(([text]) => text).map(([text, on]) => `<span class="${on ? "card-tr" : "card-ex"}" dir="auto">${fa(text, on)}</span>`).join("")
-                : `<span class="card-hint">Tap to turn over</span>`}
-            </div>
-            <div class="session-bottom">${open ? `<div class="rate two">
-                <button class="btn bad" data-act="rate" data-r="bad">${esc(t("rate_bad"))}</button>
-                <button class="btn good" data-act="rate" data-r="good">${esc(t("rate_good"))}</button>
-              </div>` : `<button class="btn" data-act="reveal">${esc(t("show"))}</button>`}</div>`;
-        } else if (item.t === "choice") {
-          view.innerHTML = `${top}
-            <div class="card static wk ${mood}">
-              <span class="card-hint">${esc(item.sub)}</span>
-              <span class="card-word ${item.q.length > 30 ? "long" : ""}">${fa(item.q, item.qfa)}</span>
-              ${answered && item.after ? `<span class="card-ex" dir="auto">${esc(item.after)}</span>` : ""}
-            </div>
-            <div class="session-bottom">
-              <div class="choices ${item.opts.length === 2 || item.opts.some((o) => o.length > 14) ? "col" : "n4"}">
-                ${item.opts.map((option) => `<button class="btn choice ${item.ofa ? "fa" : ""} ${answered && option === item.a ? "is-right" : ""} ${answered && option === answered.given && !answered.ok ? "is-wrong" : ""}"
-                  ${item.ofa ? 'dir="rtl"' : ""} data-act="pick" data-v="${esc(option)}" ${answered ? "disabled" : ""}>${esc(option)}</button>`).join("")}
-              </div>
-              ${answered ? next : ""}
-            </div>`;
-        } else {
-          const built = placed.map((i) => item.tiles[i]).join(item.sep);
-          view.innerHTML = `${top}
-            <div class="card static wk ${mood}">
-              <span class="card-hint">${esc(item.sub)}</span>
-              ${item.q ? `<span class="card-ex">${esc(item.q)}</span>` : ""}
-              <span class="card-word fa-built ${item.sep ? "long" : ""}" dir="rtl">${esc(built) || "…"}</span>
-              ${answered && !answered.ok ? `<span class="card-tr fa" dir="rtl">${esc(item.a)}</span>` : ""}
-            </div>
-            <div class="session-bottom">
-              <div class="fa-tiles" dir="rtl">${item.tiles.map((tile, i) => `<button class="btn choice fa" data-act="tile" data-i="${i}" ${placed.includes(i) || answered ? "disabled" : ""}>${esc(tile)}</button>`).join("")}</div>
-              ${answered ? next : `<div class="rate two">
-                <button class="btn ghost" data-act="undo" ${placed.length ? "" : "disabled"}>⌫</button>
-                <button class="btn" data-act="check" ${placed.length === item.tiles.length ? "" : "disabled"}>${esc(t("check"))}</button>
-              </div>`}
-            </div>`;
-        }
-      };
-
-      // On a laptop: 1-4 pick an answer (or rate a card), Enter or Space presses the main button.
-      keys = (event) => {
-        const press = (node) => { if (node) { event.preventDefault(); node.click(); } };
-        if (/^[1-9]$/.test(event.key)) {
-          press(view.querySelectorAll('[data-act="pick"]:not(:disabled), [data-act="rate"]')[Number(event.key) - 1]);
-        } else if (event.key === "Enter" || event.key === " ") {
-          press(view.querySelector('[data-act="next"], button[data-act="reveal"], [data-act="check"]:not(:disabled), [data-act="done"]'));
-        }
-      };
-      handlers = {
-        next: advance,
-        reveal: () => { if (!open) { open = true; haptic("tap"); draw(); } },
-        rate: (data) => { answered = { ok: data.r === "good" }; if (answered.ok && !seen.has(queue[0])) right += 1; seen.add(queue[0]); haptic("tap"); advance(); },
-        pick: (data) => settle(data.v === queue[0].a, data.v),
-        tile: (data) => { placed.push(Number(data.i)); haptic("tap"); draw(); },
-        undo: () => { placed.pop(); draw(); },
-        check: () => settle(placed.map((i) => queue[0].tiles[i]).join(queue[0].sep) === queue[0].a, ""),
-      };
-      draw();
-    });
-  };
-
   // ---- progress
   VIEWS.progress = () => {
     const me = state.me, p = me.progress;
@@ -1600,12 +1436,49 @@
       return;
     }
     setLanguage(state.me.language);
+    await loadCourses(state.me);
     place = (await saved) || place;
     // Straight back to the screen the app was closed on; Back leads up to the home screen from there.
     stack.length = 0;
     stack.push({ view: "home", params: {} }, ...keptPath(place.open));
     show();
     loadContent().catch(() => {}); // warm up the cards while the student looks at the home screen
+  }
+
+  // ---------------------------------------------------------- separate courses
+  // A course kept in its own folder (farsi/) is loaded only for those whose start answer has its key,
+  // and plugs in with DEUS.course({ id, views, kept, placeOk, tile }). It gets the shared helpers
+  // in DEUS.core and nothing else; app.js knows only the file name.
+  const COURSE_FILES = { farsi: "farsi/farsi" };
+  const COURSE_VERSION = 1;
+  const COURSES = [];
+  window.DEUS = {
+    course(spec) {
+      COURSES.push(spec);
+      Object.assign(VIEWS, spec.views);
+      SECTIONS.push(spec.id);
+      KEPT_VIEWS.push(...spec.kept);
+    },
+    core: {
+      state, view, esc, t, shuffle, haptic, toast, api, loading, go, back, swap, title, row, bar,
+      show, doneScreen, showReward, drawStreak, choiceKeys, ROUND_GAP_BAD,
+      on: (map) => { handlers = map; },        // the current screen's buttons (data-act)
+      onKeys: (handler) => { keys = handler; }, // the current screen's keyboard, cleared on every render
+    },
+  };
+
+  function loadCourses(me) {
+    return Promise.all(Object.entries(COURSE_FILES).filter(([key]) => me[key]).map(([key, file]) => new Promise((resolve) => {
+      const style = document.createElement("link");
+      style.rel = "stylesheet";
+      style.href = `${file}.css?v=${COURSE_VERSION}`;
+      document.head.appendChild(style);
+      const script = document.createElement("script");
+      script.src = `${file}.js?v=${COURSE_VERSION}`;
+      script.onload = resolve;
+      script.onerror = () => { me[key] = null; resolve(); };   // without its file the course just isn't shown
+      document.body.appendChild(script);
+    })));
   }
 
   start();

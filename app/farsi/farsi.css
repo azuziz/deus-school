@@ -1,0 +1,18 @@
+/* Farsi - the teacher's Persian course; loaded with farsi.js, only for the teacher. */
+@import url("https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;600;700&display=swap");
+
+.fa { font-family: Vazirmatn, Tahoma, sans-serif; font-size: 1.15em; line-height: 1.7; }
+.card-word .fa, .card-word.fa-built { font: 700 34px/1.6 Vazirmatn, Tahoma, sans-serif; }
+.card-word.long .fa, .card-word.fa-built.long { font-size: 23px; font-weight: 600; }
+.card-word.fa-big .fa { font-size: 64px; line-height: 1.4; }
+.card-tr .fa { font-size: 22px; }
+.choice.fa { font-size: 20px; padding: 10px 8px; }
+.fa-tiles { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.fa-tiles .choice { width: auto; min-width: 52px; padding: 8px 14px; font-size: 24px; }
+.rate.two { grid-template-columns: 1fr 1fr; }
+.fa-note { display: grid; gap: 10px; }
+.fa-note h3 { font-size: 17px; line-height: 1.4; }
+.fa-note pre { white-space: pre-wrap; font: 500 15px/1.8 Vazirmatn, Manrope, sans-serif; padding: 10px 12px; border-radius: 12px; background: var(--bg-alt); overflow-wrap: anywhere; }
+.fa-note ul { padding-left: 18px; color: var(--muted); font-size: 14px; display: grid; gap: 4px; }
+.fa-ex { display: grid; gap: 2px; }
+.fa-ex small { color: var(--muted); font-size: 13px; }
