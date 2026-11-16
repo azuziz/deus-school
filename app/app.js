@@ -18,6 +18,7 @@
   const state = { lang: "en", me: null, content: null };
   const stack = [];
   let handlers = {};
+  let keys = null;   // a keyboard handler for the current view (laptop), cleared on every render
 
   // ------------------------------------------------------------------ helpers
   const esc = (value) => String(value == null ? "" : value).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -176,6 +177,7 @@
   function render(forward) {
     const entry = current();
     handlers = {};
+    keys = null;
     view.className = "";
     VIEWS[entry.view](entry.params || {}, entry);
     window.scrollTo(0, 0);
@@ -222,6 +224,9 @@
     }
   }
 
+  document.addEventListener("keydown", (event) => {
+    if (keys && !event.repeat && !event.ctrlKey && !event.metaKey && !event.altKey && !/INPUT|TEXTAREA|SELECT/.test(event.target.tagName)) keys(event);
+  });
   view.addEventListener("click", (event) => {
     const node = event.target.closest("[data-act]");
     if (!node || node.disabled) return;
@@ -263,15 +268,74 @@
     if (IN_TELEGRAM) tg.openLink(url); else window.open(url, "_blank");
   }
 
-  async function deckDone(kind, part) {
+  async function deckDone(kind, part, score) {
+    const before = levelShares();
     try {
-      const result = await api("deck_done", part ? { kind, part } : { kind });
+      const result = await api("deck_done", { kind, ...(part ? { part } : {}), ...(score || {}) });
       state.me.progress = result.progress;
       if (result.learned) state.me.verbs.learned = result.learned;
       drawStreak();
+      showReward(result.reward, before);
     } catch (error) {
       toast(t("err_save"));
     }
+  }
+
+  // ---- rewards: what a finished exercise brought (gamify.py in the bot decides the numbers).
+  // The order of the hooks: the daily goal (streak) first, then "one more" with the standing
+  // against the other learners, then the 50 % / 100 % milestones of a course level.
+  /** done/total of every course level the student can work through, keyed "section:level". */
+  function levelShares() {
+    const me = state.me, shares = {};
+    shares["verbs:"] = { name: t("verbs"), done: me.verbs.learned.length, total: me.verbs.parts.length };
+    for (const level of me.grammar.levels) {
+      const topics = me.grammar.topics.filter((topic) => topic.level === level);
+      shares[`grammar:${level}`] = { name: `${t("grammar")} ${level}`, done: topics.filter((topic) => me.grammar.done[topic.id]).length, total: topics.length };
+    }
+    if (me.student) for (const level of me.wortkiste.levels) {
+      if (level.ready) shares[`wk:${level.id}`] = { name: `Wortkiste ${level.label}`, done: level.lessons.filter((lesson) => lesson.passed).length, total: level.lessons.length };
+    }
+    return shares;
+  }
+
+  /** The milestone just crossed between two levelShares(), if any: 100 % beats 50 %. */
+  function milestone(before) {
+    const after = levelShares();
+    let best = null;
+    for (const key in after) {
+      const now = after[key], then = before[key];
+      if (!then || !now.total || now.done <= then.done) continue;
+      if (now.done === now.total) return { full: true, ...now };
+      if (2 * now.done >= now.total && 2 * then.done < now.total) best = { full: false, ...now };
+    }
+    return best;
+  }
+
+  /** Fill the reward box of the done screen that is showing now (if the student is still on it). */
+  function showReward(reward, before) {
+    const box = $("reward");
+    if (!box || !reward) return;
+    const game = state.me.progress.game;
+    if (game) Object.assign(game, { today: reward.today, xp_week: reward.xp_week, xp_total: reward.xp_total, shields: reward.shields, ahead: reward.ahead });
+    const lines = [];
+    if (reward.shield_used) lines.push(t("rw_shield_used"));
+    if (reward.goal_reached_now) lines.push(`<b>${esc(reward.streak > 1 ? t("rw_goal", { n: reward.streak }) : t("rw_goal_first"))}</b>`);
+    else if (reward.today === 2) lines.push(esc(t("rw_two")));
+    else if (reward.today >= 5) lines.push(`<b>${esc(t("rw_many", { n: reward.today }))}</b>`);
+    else if (reward.today > 2) lines.push(esc(t("rw_more", { n: reward.today })));
+    if (reward.shield_won) lines.push(esc(t("rw_shield_won")));
+    lines.push(esc(reward.ahead != null && reward.ahead >= 50 ? t("rw_ahead", { p: reward.ahead }) : t("rw_climb")));
+    const stone = before ? milestone(before) : null;
+    box.innerHTML = `
+      <span class="xp">+${reward.xp} XP</span>
+      ${stone ? `<p class="milestone ${stone.full ? "full" : ""}">${esc(stone.full ? `🏆 ${t("ms_full", stone)}` : t("ms_half", stone))}</p>` : ""}
+      ${lines.map((line) => `<p>${line}</p>`).join("")}`;
+    box.hidden = false;
+    if (stone && stone.full) {
+      const emoji = view.querySelector(".done-emoji");
+      if (emoji) emoji.textContent = "🏆";
+    }
+    haptic(reward.goal_reached_now || stone ? "success" : "tap");
   }
 
   // What someone who isn't a DEUS student sees on a student section (the bot decides, not the app):
@@ -297,8 +361,25 @@
       <div class="done-emoji">${emoji}</div>
       <h2>${esc(headline)}</h2>
       ${lines.map((line) => `<p>${esc(line)}</p>`).join("")}
+      <div class="reward" id="reward" hidden></div>
       <div class="stack">${buttons.map((b, i) => `<button class="btn ${i ? "ghost" : ""}" data-act="${b.act}">${esc(b.label)}</button>`).join("")}</div>
     </div>`;
+  }
+
+  // The first thing on the home screen: today's goal (one exercise keeps the streak), then the
+  // week's points and how they compare with the other learners.
+  function goalCard(me) {
+    const game = me.progress.game || { today: 0, goal: 1, xp_week: 0, shields: 0 };
+    const reached = game.today >= game.goal;
+    const streak = me.progress.streak;
+    return `<section class="goal ${reached ? "done" : ""}">
+        <div class="goal-flame">${reached ? "🔥" : "⏳"}<b>${streak}</b></div>
+        <div class="goal-text">
+          <b>${esc(reached ? t("goal_done", { n: game.today }) : streak ? t("goal_todo", { n: streak }) : t("goal_new"))}</b>
+          <small>${esc(t("goal_week", { xp: game.xp_week }))}${game.ahead != null && game.ahead >= 50 ? ` · ${esc(t("goal_ahead", { p: game.ahead }))}` : ""}${game.shields ? ` · 🛡 ${game.shields}` : ""}</small>
+          ${reached ? `<small class="goal-more">${esc(t("goal_more"))}</small>` : ""}
+        </div>
+      </section>`;
   }
 
   // ------------------------------------------------------------------ views
@@ -325,9 +406,9 @@
         ${tile("wk", "📦", "Wortkiste", t("wk_sub"), wkPassed, wkLessons, locked)}`;
     view.innerHTML = `
       <section class="hello">
-        <p class="kicker">${esc(t(me.progress.practised_today ? "today_done" : "today_todo"))}</p>
         <h1>${esc(me.name ? t("hello_name", { name: me.name }) : t("hello"))}</h1>
       </section>
+      ${goalCard(me)}
       <section class="tiles">
         ${tile("verbs", "🔤", t("verbs"), t("verbs_sub"), me.verbs.learned.length, me.verbs.parts.length)}
         ${tile("grammar", "📘", t("grammar"), t("grammar_sub"), grammarDone, me.grammar.topics.length)}
@@ -543,7 +624,7 @@
 
       const finish = () => {
         const percent = Math.round((100 * points) / (3 * verbs.length));
-        deckDone("typing");
+        deckDone("typing", null, { right: points, total: 3 * verbs.length });
         doneScreen({
           emoji: percent >= 80 ? "🏆" : "💪",
           headline: `${percent}%`,
@@ -719,8 +800,11 @@
         });
         handlers = { again: show, back };
         try {
+          const before = levelShares();
           const result = await api("grammar_result", { id, right, total });
           state.me.grammar.done = result.done;
+          if (result.progress) { state.me.progress = result.progress; drawStreak(); }
+          showReward(result.reward, before);
         } catch (error) {
           toast(t("err_save"));
         }
@@ -1036,11 +1120,13 @@
           ],
         });
         handlers = { again: show, back, next: () => { stack.pop(); swap("wkLesson", { level, lesson: next }); } };
+        const before = levelShares();
         try {
           const result = await api("wk_result", { level, lesson, step, right, total });
           state.me.wortkiste.levels = result.levels;
           state.me.progress = result.progress;
           drawStreak();
+          showReward(result.reward, before);
         } catch (error) {
           toast(t("err_save"));
         }
@@ -1258,7 +1344,12 @@
   VIEWS.faStep = ({ n, step }, entry) => {
     title(`${FA_STEPS[step][1]} · ${n}`);
     const save = async (right, total) => {
-      try { state.me.farsi.units = (await api("fa_result", { unit: n, step, right, total })).units; } catch (error) { toast(t("err_save")); }
+      try {
+        const result = await api("fa_result", { unit: n, step, right, total });
+        state.me.farsi.units = result.units;
+        if (result.progress) { state.me.progress = result.progress; drawStreak(); }
+        showReward(result.reward);
+      } catch (error) { toast(t("err_save")); }
     };
     // The next step of this unit that has not been done yet: first those after this one, then earlier ones.
     const nextStep = () => {
@@ -1368,6 +1459,15 @@
         }
       };
 
+      // On a laptop: 1-4 pick an answer (or rate a card), Enter or Space presses the main button.
+      keys = (event) => {
+        const press = (node) => { if (node) { event.preventDefault(); node.click(); } };
+        if (/^[1-9]$/.test(event.key)) {
+          press(view.querySelectorAll('[data-act="pick"]:not(:disabled), [data-act="rate"]')[Number(event.key) - 1]);
+        } else if (event.key === "Enter" || event.key === " ") {
+          press(view.querySelector('[data-act="next"], button[data-act="reveal"], [data-act="check"]:not(:disabled), [data-act="done"]'));
+        }
+      };
       handlers = {
         next: advance,
         reveal: () => { if (!open) { open = true; haptic("tap"); draw(); } },
@@ -1391,6 +1491,9 @@
     view.innerHTML = `
       <section class="stats">
         ${stat(p.streak, t("st_streak"), "gold")}
+        ${stat(p.game ? p.game.xp_week : 0, t("st_xp_week"), "gold")}
+        ${p.game && p.game.ahead != null ? stat(`${p.game.ahead}%`, t("st_ahead")) : ""}
+        ${stat(p.game ? p.game.xp_total : 0, t("st_xp_total"))}
         ${stat(p.decks, t("st_decks"))}
         ${stat(`${me.verbs.learned.length}/${me.verbs.parts.length}`, t("st_levels"))}
         ${stat(Object.keys(me.grammar.done).length, t("st_grammar"))}
