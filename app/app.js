@@ -1260,6 +1260,12 @@
     const save = async (right, total) => {
       try { state.me.farsi.units = (await api("fa_result", { unit: n, step, right, total })).units; } catch (error) { toast(t("err_save")); }
     };
+    // The next step of this unit that has not been done yet: first those after this one, then earlier ones.
+    const nextStep = () => {
+      const steps = faUnit(n).steps, at = steps.findIndex((item) => item.id === step);
+      const open = [...steps.slice(at + 1), ...steps.slice(0, at)].find((item) => item.best == null);
+      return open && open.id;
+    };
     loading(entry, () => api("fa_step", { unit: n, step }), (payload) => {
       if (payload.notes) {
         view.innerHTML = payload.notes.map((note) => `<div class="panel fa-note">
@@ -1269,7 +1275,7 @@
             ${note.examples.map(([text, tr, de]) => `<p class="fa-ex"><span class="fa" dir="rtl">${esc(text)}</span><small>/${esc(tr)}/ — ${esc(de)}</small></p>`).join("")}
             ${note.pitfalls.length ? `<ul>${note.pitfalls.map((line) => `<li>${esc(line)}</li>`).join("")}</ul>` : ""}
           </div>`).join("") + `<div class="sticky"><button class="btn" data-act="done">${esc(t("next"))}</button></div>`;
-        handlers = { done: () => { save(1, 1); back(); } };
+        handlers = { done: () => { save(1, 1); const next = nextStep(); if (next) swap("faStep", { n, step: next }); else back(); } };
         return;
       }
       const queue = payload.items.slice();
@@ -1280,14 +1286,15 @@
       const finish = () => {
         const percent = payload.scored ? Math.round((100 * right) / total) : 100;
         const passed = percent >= state.me.farsi.pass;
+        const next = nextStep();
         haptic(passed ? "success" : "error");
         doneScreen({
           emoji: !payload.scored ? "🎉" : passed ? "🏆" : "💪",
           headline: payload.scored ? `${percent}%` : "Done",
           lines: payload.scored ? [`${right} / ${total}`] : [],
-          buttons: [{ act: "back", label: "Back to the unit" }, { act: "again", label: t("again") }],
+          buttons: [...(next ? [{ act: "next", label: `Next: ${FA_STEPS[next][1]}` }] : []), { act: "again", label: t("again") }, { act: "back", label: "Back to the unit" }],
         });
-        handlers = { again: show, back };
+        handlers = { again: show, back, next: () => swap("faStep", { n, step: next }) };
         save(payload.scored ? right : 1, payload.scored ? total : 1);
       };
 
