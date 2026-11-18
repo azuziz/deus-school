@@ -254,6 +254,82 @@
     render(true);
   }
 
+  // ------------------------------------------------------------------ usage statistics
+  // For the teacher's statistics (src/usage.py): how often each section is opened and how long it
+  // is really used. Time only counts while the app is on screen and was touched in the last
+  // USAGE_IDLE_MS. Sent about once a minute and when the app goes to the background.
+  const USAGE_IDLE_MS = 2 * 60 * 1000;
+  const USAGE_SEND_MS = 60 * 1000;
+  const usage = { section: null, since: Date.now(), touched: Date.now(), pending: {} };
+
+  /** The section on screen, as usage.APP_SECTIONS names it. */
+  function sectionNow() {
+    if (!stack.length) return null;
+    const views = stack.map((entry) => entry.view);
+    if (views.includes("stats")) return "stats";
+    if (views.includes("about")) return "profile";
+    if (views.includes("typing")) return "typing";
+    if (stack.some((entry) => entry.view === "deck" && entry.params.kind === "supertest")) return "supertest";
+    const first = stack[1];
+    if (!first) return views[0];   // home, progress, school
+    if (first.view === "deck") return "verbs";
+    if (first.view === "quiz") return first.params.kind;   // articles, prepositions
+    if (["verbs", "part"].includes(first.view)) return "verbs";
+    if (["grammar", "topic", "round"].includes(first.view)) return "grammar";
+    if (["vocab", "words"].includes(first.view)) return "vocab";
+    if (first.view.startsWith("wk")) return "wk";
+    const course = COURSES.find((item) => first.view in item.views);
+    return course ? course.id : views[0];
+  }
+
+  function usageAdd(section, uses, ms) {
+    const item = usage.pending[section] || (usage.pending[section] = [0, 0]);
+    item[0] += uses;
+    item[1] += ms;
+  }
+
+  /** Book the time since the last tick to the section that was on screen. */
+  function usageTick() {
+    const now = Date.now();
+    if (usage.section) usageAdd(usage.section, 0, Math.max(0, Math.min(now, usage.touched + USAGE_IDLE_MS) - usage.since));
+    usage.since = now;
+  }
+
+  function usageNote() {
+    const section = sectionNow();
+    if (section === usage.section) return;
+    usageTick();
+    usage.section = section;
+    if (section) usageAdd(section, 1, 0);
+  }
+
+  function usageSend(leaving) {
+    if (!state.me) return;
+    usageTick();
+    const sections = {};
+    for (const [key, [uses, ms]] of Object.entries(usage.pending)) {
+      const seconds = Math.round(ms / 1000);
+      if (uses || seconds) sections[key] = [uses, seconds];
+    }
+    usage.pending = {};
+    if (!Object.keys(sections).length) return;
+    if (leaving && navigator.sendBeacon) {
+      const body = JSON.stringify({ initData: IN_TELEGRAM ? tg.initData : "", sections });
+      if (navigator.sendBeacon(API + "usage", new Blob([body], { type: "text/plain" }))) return;
+    }
+    api("usage", { sections }).catch(() => {});
+  }
+
+  for (const name of ["pointerdown", "keydown", "scroll"]) {
+    document.addEventListener(name, () => { usage.touched = Date.now(); }, { passive: true, capture: true });
+  }
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) usageSend(true);
+    else usage.since = usage.touched = Date.now();
+  });
+  window.addEventListener("pagehide", () => usageSend(true));
+  setInterval(() => { if (!document.hidden) usageSend(false); }, USAGE_SEND_MS);
+
   function show() { render(false); }
 
   function render(forward) {
@@ -275,6 +351,7 @@
     }
     drawStreak();
     notePlace(forward);
+    usageNote();
   }
 
   function go(name, params) { stack.push({ view: name, params: params || {} }); render(true); }
@@ -499,6 +576,7 @@
         <h1>${esc(me.name ? t("hello_name", { name: me.name }) : t("hello"))}</h1>
       </section>
       ${goalCard(me)}
+      ${pathCard(me)}
       <section class="tiles">
         ${tile("verbs", "🔤", t("verbs"), t("verbs_sub"), me.verbs.learned.length, me.verbs.parts.length)}
         ${tile("grammar", "📘", t("grammar"), t("grammar_sub"), grammarDone, me.grammar.topics.length)}
@@ -1427,6 +1505,134 @@
     handlers = { mistakes: () => go("deck", { kind: "mistakes" }), chat: () => openChat() };
   };
 
+  // ---- about me: name, level and goal, asked once on the first start (miniapp._about_set) and
+  // changeable in the School tab. The goal drives the path card on the home screen; a student's
+  // level opens the Wortkiste levels below it.
+  const CEFR = ["a1", "a2", "b1", "b2", "c1"];
+
+  /** How far along the way from the student's level to their goal: grammar topics and (students)
+   *  Wortkiste lessons of those levels, done of all. */
+  function goalPath(me) {
+    const about = me.about || {};
+    const to = CEFR.indexOf(about.target);
+    if (to < 0) return null;
+    const from = Math.min(to, Math.max(0, CEFR.indexOf(about.level)));
+    const inRange = (code) => { const i = CEFR.indexOf(String(code || "").slice(0, 2).toLowerCase()); return i >= from && i <= to; };
+    let done = 0, total = 0;
+    for (const topic of me.grammar.topics) if (inRange(topic.level)) { total += 1; if (me.grammar.done[topic.id]) done += 1; }
+    if (me.student) for (const level of me.wortkiste.levels) {
+      if (level.ready && inRange(level.id)) for (const lesson of level.lessons) { total += 1; if (lesson.passed) done += 1; }
+    }
+    return total ? { done, total, target: about.target } : null;
+  }
+
+  function pathCard(me) {
+    const path = goalPath(me);
+    if (!path) return "";
+    const percent = Math.floor((100 * path.done) / path.total);
+    return `<section class="path">
+        <div class="path-top"><b>🎯 ${esc(t("path_title", { target: levelLabel(path.target) }))}</b><em>${percent}%</em></div>
+        ${bar(path.done, path.total)}
+        <small>${esc(t(path.done >= path.total ? "path_done" : percent >= 75 ? "path_s75" : percent >= 50 ? "path_s50" : percent >= 25 ? "path_s25" : "path_s0"))}</small>
+      </section>`;
+  }
+
+  VIEWS.about = (params, entry) => {
+    const me = state.me;
+    const answers = entry.answers || (entry.answers = { name: (me.about && me.about.name) || me.name || "", level: me.about && me.about.level, target: me.about && me.about.target, step: 0 });
+    title(t("about_title"));
+    const prevButton = answers.step ? `<button class="btn ghost" data-act="prev">${esc(t("about_back"))}</button>` : "";
+    const chips = (codes, picked, act) => `<div class="chips wide">${codes.map((code) => `<button class="chip ${code === picked ? "on" : ""}" data-act="${act}" data-code="${code}">${esc(levelLabel(code))}</button>`).join("")}</div>`;
+    const head = (n, question) => `<p class="kicker">${esc(t("about_step", { n }))}</p><h2>${esc(question)}</h2>`;
+    handlers = { prev: () => { answers.step -= 1; show(); } };
+    if (answers.step === 0) {
+      view.innerHTML = `<section class="about">${head(1, t("about_hi"))}<p>${esc(t("about_name_q"))}</p>
+        <form class="about-form" data-form><input maxlength="40" value="${esc(answers.name)}" autocomplete="given-name" enterkeyhint="next">
+        <button class="btn" type="submit">${esc(t("about_next"))}</button></form></section>`;
+      const input = view.querySelector("input");
+      view.querySelector("form").addEventListener("submit", (event) => {
+        event.preventDefault();
+        const name = input.value.trim();
+        if (!name) { input.focus(); return; }
+        answers.name = name;
+        answers.step = 1;
+        show();
+      });
+      return;
+    }
+    if (answers.step === 1) {
+      view.innerHTML = `<section class="about">${head(2, t("about_level_q", { name: answers.name }))}${chips(["never", ...CEFR], answers.level, "level")}${prevButton}</section>`;
+      handlers.level = (data) => {
+        answers.level = data.code;
+        if (CEFR.indexOf(answers.target) < CEFR.indexOf(data.code)) answers.target = null;
+        answers.step = 2;
+        haptic("tap");
+        show();
+      };
+      return;
+    }
+    view.innerHTML = `<section class="about">${head(3, t("about_goal_q"))}${chips(CEFR.slice(Math.max(0, CEFR.indexOf(answers.level))), answers.target, "target")}
+      <p class="fine">${esc(t("about_goal_note"))}</p>${prevButton}</section>`;
+    let saving = false;
+    handlers.target = async (data) => {
+      if (saving) return;
+      saving = true;
+      answers.target = data.code;
+      try {
+        const result = await api("about_set", { name: answers.name, level: answers.level, target: answers.target });
+        Object.assign(state.me, { about: result.about, name: result.name, progress: result.progress, wortkiste: result.wortkiste });
+      } catch (error) {
+        saving = false;
+        toast(t("err_save"));
+        return;
+      }
+      haptic("success");
+      toast(t("about_saved"));
+      if (params.first) { stack.length = 0; stack.push({ view: "home", params: {} }); show(); } else back();
+    };
+  };
+
+  // ---- statistics, for the teacher (src/usage.py report)
+  const OWN_LABEL = { verbs: "verbs", grammar: "grammar", vocab: "vocab", booster: "vocab", articles: "articles", prepositions: "prepositions", stats: "stats" };
+
+  function featureName(key) {
+    const [source, name] = key.split(":");
+    const label = OWN_LABEL[name] ? t(OWN_LABEL[name]) : name === "wk" ? "Wortkiste" : name === "fa" ? "Farsi" : t(`uf_${name}`);
+    return `${source === "chat" ? "💬" : "📱"} ${label}`;
+  }
+
+  VIEWS.stats = (params, entry) => {
+    const days = params.days || 7;
+    title(t("stats"));
+    loading(entry, () => api("stats", { days }), (data) => {
+      const minutes = (seconds) => Math.round(seconds / 60);
+      const amount = (uses, seconds) => `×${uses}${seconds ? ` · ${t("stats_min", { n: minutes(seconds) })}` : ""}`;
+      const features = Object.entries(data.features).sort((a, b) => b[1].seconds - a[1].seconds || b[1].uses - a[1].uses);
+      const person = (p) => {
+        const lines = Object.entries(p.totals).sort((a, b) => b[1][1] - a[1][1] || b[1][0] - a[1][0])
+          .map(([key, [uses, seconds]]) => `<li><span>${esc(featureName(key))}</span><em>${esc(amount(uses, seconds))}</em></li>`).join("");
+        const facts = [
+          p.username ? `@${p.username}` : "",
+          p.target ? `${levelLabel(p.level || "never")} → ${levelLabel(p.target)}` : "",
+          `🔥 ${p.streak}`, `${p.xp_total} XP`,
+          p.last_seen ? t("stats_seen", { d: new Date(p.last_seen * 1000).toLocaleDateString() }) : "",
+        ].filter(Boolean).join(" · ");
+        return `<details class="person"><summary><b>${esc(p.name || p.id)}${p.student ? " 🎓" : ""}</b><small>${esc(t("stats_person", { d: p.days.length, m: minutes(p.seconds), n: p.uses }))}</small></summary>
+          <p class="fine">${esc(facts)}</p><ul class="usage">${lines}</ul></details>`;
+      };
+      const box = (value, label) => `<div class="stat"><b>${esc(value)}</b><small>${esc(label)}</small></div>`;
+      view.innerHTML = `
+        <div class="chips wide">${[1, 7, 30, 90].map((n) => `<button class="chip ${n === days ? "on" : ""}" data-act="days" data-n="${n}">${esc(n === 1 ? t("stats_today") : t("stats_days", { n }))}</button>`).join("")}</div>
+        <section class="stats">${box(data.people.length, t("stats_people"))}${box(minutes(data.people.reduce((sum, p) => sum + p.seconds, 0)), t("stats_minutes"))}</section>
+        <h3 class="section">${esc(t("stats_features"))}</h3>
+        <ul class="usage panel">${features.map(([key, f]) => `<li><span>${esc(featureName(key))}</span><em>${esc(t("stats_feature", { p: f.people }))} · ${esc(amount(f.uses, f.seconds))}</em></li>`).join("") || `<li>${esc(t("stats_none"))}</li>`}</ul>
+        <h3 class="section">${esc(t("stats_people_list"))}</h3>
+        <div class="people">${data.people.map(person).join("") || `<p class="fine">${esc(t("stats_none"))}</p>`}</div>
+        <p class="fine">${esc(t("stats_note"))}</p>`;
+      handlers = { days: (data) => swap("stats", { days: Number(data.n) }) };
+    });
+  };
+
   // ---- school
   VIEWS.school = () => {
     title("DEUS");
@@ -1448,6 +1654,8 @@
         ${row("site", { path: "/results/" }, t("results"), t("results_sub"))}
         ${row("channel", {}, t("channel"), `@${CFG.channel}`)}
         ${row("chat", {}, t("ask"), t("ask_sub"))}
+        ${state.me.teacher ? "" : row("about", {}, t("about_title"), [state.me.name, state.me.about && state.me.about.target ? `${levelLabel(state.me.about.level || "never")} → ${levelLabel(state.me.about.target)}` : ""].filter(Boolean).join(" · "))}
+        ${state.me.teacher ? row("stats", {}, `📊 ${t("stats")}`, t("stats_sub")) : ""}
       </div>
       ${state.me.student ? `<p class="badge">🎓 ${esc(t("student_badge"))}</p>` : ""}
       <h3 class="section">${esc(t("language"))}</h3>
@@ -1458,6 +1666,8 @@
       site: (data) => openSite(data.path),
       channel: () => { const link = `https://t.me/${CFG.channel}`; if (IN_TELEGRAM) tg.openTelegramLink(link); else window.open(link, "_blank"); },
       chat: () => openChat(),
+      about: () => go("about"),
+      stats: () => go("stats"),
       lang: async (data) => {
         if (data.code === state.lang) return;
         const before = state.lang;
@@ -1524,7 +1734,9 @@
     place = (await saved) || place;
     // Straight back to the screen the app was closed on; Back leads up to the home screen from there.
     stack.length = 0;
-    stack.push({ view: "home", params: {} }, ...keptPath(place.open));
+    // The first start: three short questions (name, level, goal) before anything else.
+    if (state.me.about && !state.me.about.done && !state.me.teacher) stack.push({ view: "about", params: { first: true } });
+    else stack.push({ view: "home", params: {} }, ...keptPath(place.open));
     show();
     // Results that couldn't be sent last time (no connection) go now; the screens catch up after.
     if (outboxRead().length) flushOutbox().then((n) => { if (n) refreshMe(); });

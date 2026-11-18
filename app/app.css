@@ -332,3 +332,24 @@ form.typing { gap: 10px; }
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; }
 }
+
+.path { display: grid; gap: 8px; padding: 14px 16px; border-radius: var(--radius); background: var(--card); border: 1px solid var(--line); }
+.path-top { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.path-top em { font-style: normal; font-weight: 800; color: var(--gold); }
+.path small { color: var(--muted); }
+.about { display: grid; gap: 14px; padding: 8px 2px; }
+.about .kicker { margin: 0; }
+.about h2 { margin: 0; font: 700 22px/1.25 Unbounded, Manrope, sans-serif; }
+.about p { margin: 0; }
+.about-form { display: grid; gap: 12px; }
+.about-form input { font-size: 18px; }
+.usage { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.usage li { display: flex; justify-content: space-between; gap: 10px; font-size: 14px; }
+.usage li em { font-style: normal; color: var(--muted); white-space: nowrap; }
+.usage.panel { padding: 14px 16px; }
+.people { display: grid; gap: 8px; }
+.person { padding: 12px 14px; border-radius: var(--radius); background: var(--card); border: 1px solid var(--line); }
+.person summary { display: grid; gap: 2px; cursor: pointer; list-style: none; }
+.person summary::-webkit-details-marker { display: none; }
+.person summary small { color: var(--muted); }
+.person .usage { margin-top: 8px; }
