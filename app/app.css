@@ -276,6 +276,13 @@ input::placeholder { color: var(--muted); opacity: .7; }
 .card.wk.static { cursor: default; }
 .card-grammar { color: var(--muted); font-size: 14px; }
 .card-tr { font-size: 20px; font-weight: 700; }
+.motto { padding: 18px 4px 6px; }
+.motto .kicker { margin: 0 0 6px; }
+.motto h2 { margin: 0; font: 700 22px/1.25 Unbounded, Manrope, sans-serif; }
+.motto.big { padding: 36px 4px 26px; text-align: center; }
+.motto.big h2 { font-size: 30px; }
+.card-word.rev { font-family: Manrope, sans-serif; font-size: 24px; }
+.card-de { font: 700 26px/1.2 Unbounded, Manrope, sans-serif; color: var(--gold, #d4a017); overflow-wrap: anywhere; }
 .card-ex { color: var(--muted); font-size: 15px; font-style: italic; max-width: 34ch; }
 .card.wk s { color: var(--red); font-size: 15px; }
 .card.wk.right .card-hint, .card.wk.wrong .card-hint { font-size: 15px; font-weight: 400; color: var(--muted); }

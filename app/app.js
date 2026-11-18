@@ -72,6 +72,87 @@
     return data;
   }
 
+  // ------------------------------------------------------------------ saving results
+  // A finished exercise must never get lost. It goes into an outbox on this phone first and leaves
+  // it only once the bot has stored it (or refused it for good, e.g. a locked lesson). Without a
+  // connection it stays there and is sent on the next start. Every result has its own id ("rid")
+  // and the time it was done ("at"): the bot never counts the same id twice (session/receipts.py)
+  // and counts a late one for the day it was done (miniapp._done_at), so the streak survives too.
+  const OUTBOX_KEY = "deus.outbox";
+  const OUTBOX_MAX_DAYS = 30;   // the bot remembers ids for 45 days (receipts.TTL_SECONDS)
+  let outboxMemory = [];
+
+  function outboxRead() {
+    try {
+      const list = JSON.parse(localStorage.getItem(OUTBOX_KEY) || "[]");
+      return Array.isArray(list) ? list : [];
+    } catch (e) { return outboxMemory; }
+  }
+
+  function outboxWrite(list) {
+    outboxMemory = list;
+    try { localStorage.setItem(OUTBOX_KEY, JSON.stringify(list)); } catch (e) { /* private mode: kept in memory */ }
+  }
+
+  const outboxDrop = (rid) => outboxWrite(outboxRead().filter((item) => !item.body || item.body.rid !== rid));
+  const newRid = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+  // Worth sending again: no connection, a server error, or an expired Telegram signature (the app
+  // was left open for a day) - not a refusal like "lesson locked".
+  const retryable = (error) => !error.status || error.status >= 500 || error.status === 401;
+
+  /** {result} when the bot answered, {error, keep} when not. */
+  async function sendResult(item) {
+    try { return { result: await api(item.action, item.body) }; }
+    catch (error) { return { error, keep: retryable(error) }; }
+  }
+
+  /** Store a finished exercise. The bot's answer, or null when there is nothing new to show
+   *  (kept for later, refused, or already stored before - then the app re-reads its progress). */
+  async function saveResult(action, body) {
+    const item = { action, body: { ...body, rid: newRid(), at: Math.floor(Date.now() / 1000) } };
+    outboxWrite([...outboxRead(), item]);
+    const sent = await sendResult(item);
+    if (!sent.keep) outboxDrop(item.body.rid);
+    if (sent.result && !sent.result.duplicate) {
+      if (outboxRead().length) flushOutbox().then((n) => { if (n) refreshMe(); });
+      return sent.result;
+    }
+    if (sent.result) refreshMe();
+    else toast(t(sent.keep ? "saved_later" : "err_save"));
+    return null;
+  }
+
+  let flushing = false;
+  /** Send what is still waiting, oldest first; stops at the first one that can't go yet. */
+  async function flushOutbox() {
+    if (flushing) return 0;
+    flushing = true;
+    let stored = 0;
+    try {
+      const oldest = Date.now() / 1000 - OUTBOX_MAX_DAYS * 86400;
+      for (const item of outboxRead()) {
+        if (!item.body || !(item.body.at > oldest)) { outboxDrop(item.body && item.body.rid); continue; }
+        const sent = await sendResult(item);
+        if (sent.keep) break;
+        outboxDrop(item.body.rid);
+        if (sent.result && !sent.result.duplicate) stored += 1;
+      }
+    } finally {
+      flushing = false;
+    }
+    return stored;
+  }
+
+  /** Progress changed behind the app's back (a late result went through): read it again. */
+  async function refreshMe() {
+    try {
+      const fresh = await api("start");
+      Object.assign(state.me, fresh);
+      drawStreak();
+      if (["home", "progress"].includes(current().view)) show();
+    } catch (e) { /* the next start reads it */ }
+  }
+
   async function loadContent() {
     if (!state.content) state.content = await api("content");
     return state.content;
@@ -281,15 +362,12 @@
 
   async function deckDone(kind, part, score) {
     const before = levelShares();
-    try {
-      const result = await api("deck_done", { kind, ...(part ? { part } : {}), ...(score || {}) });
-      state.me.progress = result.progress;
-      if (result.learned) state.me.verbs.learned = result.learned;
-      drawStreak();
-      showReward(result.reward, before);
-    } catch (error) {
-      toast(t("err_save"));
-    }
+    const result = await saveResult("deck_done", { kind, ...(part ? { part } : {}), ...(score || {}) });
+    if (!result) return;
+    state.me.progress = result.progress;
+    if (result.learned) state.me.verbs.learned = result.learned;
+    drawStreak();
+    showReward(result.reward, before);
   }
 
   // ---- rewards: what a finished exercise brought (gamify.py in the bot decides the numbers).
@@ -811,15 +889,12 @@
           buttons: [{ act: "again", label: t("round_more") }, { act: "back", label: t("round_rule") }],
         });
         handlers = { again: show, back };
-        try {
-          const before = levelShares();
-          const result = await api("grammar_result", { id, right, total });
-          state.me.grammar.done = result.done;
-          if (result.progress) { state.me.progress = result.progress; drawStreak(); }
-          showReward(result.reward, before);
-        } catch (error) {
-          toast(t("err_save"));
-        }
+        const before = levelShares();
+        const result = await saveResult("grammar_result", { id, right, total });
+        if (!result) return;
+        state.me.grammar.done = result.done;
+        if (result.progress) { state.me.progress = result.progress; drawStreak(); }
+        showReward(result.reward, before);
       };
 
       handlers = {
@@ -918,8 +993,9 @@
   };
 
   // ---- Wortkiste: the course vocabulary, lesson by lesson (students only; the bot decides)
-  const WK_STEPS = ["cards", "kol", "prep", "gaps", "links", "articles", "typing", "blitz", "test"];
-  const WK_ICON = { cards: "🃏", articles: "🎯", links: "🔗", kol: "🤝", prep: "🧩", gaps: "✏️", typing: "✍️", blitz: "⚡", test: "🏁" };
+  const WK_STEPS = ["cards", "rev", "kol", "prep", "gaps", "links", "articles", "typing", "blitz", "test"];
+  const WK_LEARN = ["cards", "rev"];   // for learning, not a check (wortkiste.LEARNING_STEPS): no score
+  const WK_ICON = { cards: "🃏", rev: "🔄", articles: "🎯", links: "🔗", kol: "🤝", prep: "🧩", gaps: "✏️", typing: "✍️", blitz: "⚡", test: "🏁" };
   const WK_ROUND = 12;      // questions in the links and typing rounds
   const WK_BLITZ_SECONDS = 60;
   const WK_BLITZ_MIN = 10;  // answering fewer than this in a Blitz can't count as passed
@@ -1010,7 +1086,8 @@
       <div class="list">
         ${WK_STEPS.filter((step) => mine.steps.includes(step)).map((step) => {
           const best = mine.best[step];
-          const pill = best == null ? "" : `<span class="pill ${step !== "cards" && best >= pass ? "ok" : ""}">${step === "cards" ? "✓" : `${best}%`}</span>`;
+          const learn = WK_LEARN.includes(step);
+          const pill = best == null ? "" : `<span class="pill ${!learn && best >= pass ? "ok" : ""}">${learn ? "✓" : `${best}%`}</span>`;
           return row("step", { step }, t(`wk_s_${step}`), t(info.german && step === "typing" ? "wk_d_typing_de" : `wk_d_${step}`), pill, { text: WK_ICON[step] });
         }).join("")}
       </div>`;
@@ -1117,14 +1194,15 @@
       const finish = async (right, total) => {
         const pass = state.me.wortkiste.pass;
         const percent = Math.round((100 * right) / total);
-        const passed = step !== "cards" && percent >= pass;
+        const learn = WK_LEARN.includes(step);
+        const passed = !learn && percent >= pass;
         const numbers = info.lessons.map((item) => item.n);
         const next = numbers[numbers.indexOf(lesson) + 1];
-        haptic(passed || step === "cards" ? "success" : "error");
+        haptic(passed || learn ? "success" : "error");
         doneScreen({
-          emoji: step === "cards" ? "🎉" : passed ? "🏆" : "💪",
-          headline: step === "cards" ? t("wk_cards_done") : `${percent}%`,
-          lines: step === "cards" ? [t("wk_cards_next")] : [t("wk_right_of", { right, total }), t(passed ? "wk_passed" : "wk_not_yet", { n: pass })],
+          emoji: learn ? "🎉" : passed ? "🏆" : "💪",
+          headline: learn ? t("wk_cards_done") : `${percent}%`,
+          lines: learn ? [t(step === "rev" ? "wk_rev_next" : "wk_cards_next")] : [t("wk_right_of", { right, total }), t(passed ? "wk_passed" : "wk_not_yet", { n: pass })],
           buttons: [
             ...(passed && next ? [{ act: "next", label: t("wk_next_lesson") }] : []),
             { act: "again", label: t("again") },
@@ -1133,19 +1211,18 @@
         });
         handlers = { again: show, back, next: () => { stack.pop(); swap("wkLesson", { level, lesson: next }); } };
         const before = levelShares();
-        try {
-          const result = await api("wk_result", { level, lesson, step, right, total });
-          state.me.wortkiste.levels = result.levels;
-          state.me.progress = result.progress;
-          drawStreak();
-          showReward(result.reward, before);
-        } catch (error) {
-          toast(t("err_save"));
-        }
+        const result = await saveResult("wk_result", { level, lesson, step, right, total });
+        if (!result) return;
+        state.me.wortkiste.levels = result.levels;
+        state.me.progress = result.progress;
+        drawStreak();
+        showReward(result.reward, before);
       };
 
       // 1. Cards: meet the word, turn it over, say how well you knew it. A missed card comes back.
-      const cards = () => {
+      // `reverse` (every level with a translation, wortkiste "rev"): the translation first, the German
+      // word on the back - for recalling the word yourself, as in speaking and writing.
+      const cards = (reverse) => {
         const queue = words.slice();
         const total = queue.length;
         let learned = 0, revealed = false;
@@ -1158,16 +1235,17 @@
           view.innerHTML = `
             <div class="session-top">${bar(learned, total)}<em>${learned}/${total}</em>${revealed ? wkFlag(word) : ""}</div>
             <div class="card wk ${revealed ? "open" : ""}" data-act="reveal">
-              <span class="card-word">${esc(word.head)}</span>
+              <span class="card-word ${reverse ? "rev" : ""}">${esc(reverse ? word.tr : word.head)}</span>
               ${revealed ? `
-                ${word.entry !== word.head ? `<span class="card-grammar">${esc(word.entry)}</span>` : ""}
-                <span class="card-tr">${esc(word.tr)}</span>
+                ${reverse ? `<span class="card-de">${esc(word.entry)}</span>`
+                  : `${word.entry !== word.head ? `<span class="card-grammar">${esc(word.entry)}</span>` : ""}
+                <span class="card-tr">${esc(word.tr)}</span>`}
                 <span class="card-ex">${esc(word.ex)}</span>
                 ${word.kol ? `<div class="link"><span class="tag kol">${esc(t("wk_kol"))}</span>${esc(word.kol.full)}</div>` : ""}
                 ${word.prep ? `<div class="link"><span class="tag kol">${esc(t("wk_s_prep"))}</span>${esc(word.prep.text.replace("___", word.prep.answer))}</div>` : ""}
                 ${links(word)}
                 ${word.phr ? `<div class="link phr"><b>${esc(word.phr.de)}</b><small>${esc(word.phr.tr)}</small></div>` : ""}`
-                : `<span class="card-hint">${esc(t("wk_card_hint"))}</span>`}
+                : `<span class="card-hint">${esc(t(reverse ? "wk_rev_hint" : "wk_card_hint"))}</span>`}
             </div>
             <div class="session-bottom">
               ${revealed ? `<div class="rate">
@@ -1304,7 +1382,8 @@
         draw();
       };
 
-      if (step === "cards") cards();
+      if (step === "cards") cards(false);
+      else if (step === "rev") cards(true);
       else if (step === "articles") questions(shuffle(wkArticleItems(words)), true);
       else if (step === "links") questions(wkLinkItems(words), true);
       else if (step === "typing") questions(wkPick(wkTypeItems(words), WK_ROUND), true);
@@ -1351,13 +1430,18 @@
   // ---- school
   VIEWS.school = () => {
     title("DEUS");
+    // The motto for everyone - big for students, who have no trial-lesson offer under it.
     view.innerHTML = `
-      <section class="promo">
+      <section class="motto ${state.me.student ? "big" : ""}">
+        <p class="kicker">DEUS</p>
+        <h2>${esc(t("motto_title"))}</h2>
+      </section>
+      ${state.me.student ? "" : `<section class="promo">
         <p class="kicker">DEUS digital school</p>
         <h2>${esc(t("promo_title"))}</h2>
         <p>${esc(t("promo_text"))}</p>
         <button class="btn" data-act="trial">${esc(t("trial"))}</button>
-      </section>
+      </section>`}
       <div class="list">
         ${row("site", { path: "/kurse/" }, t("courses"), t("courses_sub"))}
         ${row("site", { path: "/speaking-club/" }, t("club"), t("club_sub"))}
@@ -1442,6 +1526,8 @@
     stack.length = 0;
     stack.push({ view: "home", params: {} }, ...keptPath(place.open));
     show();
+    // Results that couldn't be sent last time (no connection) go now; the screens catch up after.
+    if (outboxRead().length) flushOutbox().then((n) => { if (n) refreshMe(); });
     loadContent().catch(() => {}); // warm up the cards while the student looks at the home screen
   }
 
@@ -1450,7 +1536,7 @@
   // and plugs in with DEUS.course({ id, views, kept, placeOk, tile }). It gets the shared helpers
   // in DEUS.core and nothing else; app.js knows only the file name.
   const COURSE_FILES = { farsi: "farsi/farsi" };
-  const COURSE_VERSION = 1;
+  const COURSE_VERSION = 2;
   const COURSES = [];
   window.DEUS = {
     course(spec) {
@@ -1461,7 +1547,7 @@
     },
     core: {
       state, view, esc, t, shuffle, haptic, toast, api, loading, go, back, swap, title, row, bar,
-      show, doneScreen, showReward, drawStreak, choiceKeys, ROUND_GAP_BAD,
+      show, doneScreen, showReward, drawStreak, choiceKeys, ROUND_GAP_BAD, saveResult,
       on: (map) => { handlers = map; },        // the current screen's buttons (data-act)
       onKeys: (handler) => { keys = handler; }, // the current screen's keyboard, cleared on every render
     },

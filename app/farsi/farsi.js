@@ -7,7 +7,7 @@
 
   const {
     state, view, esc, t, haptic, toast, api, loading, go, back, swap, title, row, bar,
-    show, doneScreen, showReward, drawStreak, on, onKeys, choiceKeys, ROUND_GAP_BAD,
+    show, doneScreen, showReward, drawStreak, on, onKeys, choiceKeys, ROUND_GAP_BAD, saveResult,
   } = window.DEUS.core;
   const VIEWS = {};
 
@@ -49,12 +49,11 @@
   VIEWS.faStep = ({ n, step }, entry) => {
     title(`${FA_STEPS[step][1]} · ${n}`);
     const save = async (right, total) => {
-      try {
-        const result = await api("fa_result", { unit: n, step, right, total });
-        state.me.farsi.units = result.units;
-        if (result.progress) { state.me.progress = result.progress; drawStreak(); }
-        showReward(result.reward);
-      } catch (error) { toast(t("err_save")); }
+      const result = await saveResult("fa_result", { unit: n, step, right, total });
+      if (!result) return;
+      state.me.farsi.units = result.units;
+      if (result.progress) { state.me.progress = result.progress; drawStreak(); }
+      showReward(result.reward);
     };
     // The next step of this unit that has not been done yet: first those after this one, then earlier ones.
     const nextStep = () => {
