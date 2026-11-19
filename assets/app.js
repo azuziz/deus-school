@@ -9,6 +9,7 @@
     ["kurse", "/kurse/"],
     ["visum", "/visum/"],
     ["results", "/results/"],
+    ["lernen", "/lernen/"],
     ["sophie", "/sophie/"],
     ["international", "/international/"],
     ["club", "/speaking-club/"],
@@ -122,6 +123,7 @@
     </article>`;
   }
 
+  const isIntl = (r) => Boolean(r.country) && r.country !== "uz";   // shown on /international/ too
   const LONG_REVIEW = 700; // characters; longer reviews start folded with a "Read more" button
 
   function reviewCard(r) {
@@ -208,6 +210,7 @@
     resultsTeaser: () => D.results.slice(0, 3).map(resultCard).join(""),
     intlResults: () => D.intlResults.map(resultCard).join(""),
     reviews: () => D.reviews.map(reviewCard).join(""),
+    intlReviews: () => D.reviews.filter(isIntl).map(reviewCard).join(""),
     visaPackages: () => D.visa.packages.map(visaCard).join(""),
     visaExtras,
     clubSessions: () => D.clubSessions.map(clubSession).join(""),
@@ -215,7 +218,7 @@
     countries: () => D.countries.map((c) => `<li>${esc(t("country." + c))}</li>`).join(""),
   };
   D.experience.countries = D.countries.length;
-  const SIZE = { results: D.results.length, resultsTeaser: D.results.length, intlResults: D.intlResults.length, reviews: D.reviews.length, clubUpcoming: D.clubUpcoming.length };
+  const SIZE = { intlReviews: D.reviews.filter(isIntl).length, results: D.results.length, resultsTeaser: D.results.length, intlResults: D.intlResults.length, reviews: D.reviews.length, clubUpcoming: D.clubUpcoming.length };
 
   // ---------- render everything for one language ----------
   function render(l) {

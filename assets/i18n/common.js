@@ -6,6 +6,8 @@ Object.assign(window.T, {
   "nav.kurse": { en: "Courses", ru: "Курсы", uz: "Kurslar", de: "Kurse" },
   "nav.visum": { en: "Visa", ru: "Виза", uz: "Viza", de: "Visum" },
   "nav.results": { en: "Results", ru: "Результаты", uz: "Natijalar", de: "Ergebnisse" },
+  "nav.lernen": { en: "DEUS Lernen", ru: "DEUS Lernen", uz: "DEUS Lernen", de: "DEUS Lernen" },
+  "lernen.open": { en: "Open DEUS Lernen", ru: "Открыть DEUS Lernen", uz: "DEUS Lernen'ni ochish", de: "DEUS Lernen öffnen" },
   "nav.sophie": { en: "Sophie AI", ru: "Sophie AI", uz: "Sophie AI", de: "Sophie KI" },
   "nav.international": { en: "International", ru: "Иностранцам", uz: "Xorijliklar uchun", de: "International" },
   "nav.club": { en: "Speaking club", ru: "Разговорный клуб", uz: "Suhbat klubi", de: "Sprachclub" },
@@ -35,7 +37,7 @@ Object.assign(window.T, {
   // the three course formats
   "course.klasse.name": { en: "Klasse", ru: "Klasse", uz: "Klasse", de: "Klasse" },
   "course.klasse.kind": { en: "Group class", ru: "Группа", uz: "Guruh", de: "Gruppenkurs" },
-  "course.klasse.sub": { en: "Learn with a full class", ru: "Учитесь в полноценной группе", uz: "To'liq guruhda o'qing", de: "Lernen in der ganzen Klasse" },
+  "course.klasse.sub": { en: "Learn with a full class", ru: "Учись в полноценной группе", uz: "To'liq guruhda o'qing", de: "Lernen in der ganzen Klasse" },
   "course.klasse.text": {
     en: "A steady pace and plenty of partners to speak with. The best value if you want structure and regular practice.",
     ru: "Ровный темп и много собеседников для практики. Самый выгодный вариант, если нужны система и регулярность.",
@@ -53,10 +55,10 @@ Object.assign(window.T, {
   },
   "course.privat.name": { en: "Privat", ru: "Privat", uz: "Privat", de: "Privat" },
   "course.privat.kind": { en: "One-to-one", ru: "Индивидуально", uz: "Individual", de: "Einzelunterricht" },
-  "course.privat.sub": { en: "Just you and your teacher", ru: "Только вы и преподаватель", uz: "Faqat siz va o'qituvchi", de: "Nur du und deine Lehrkraft" },
+  "course.privat.sub": { en: "Just you and your teacher", ru: "Только ты и преподаватель", uz: "Faqat siz va o'qituvchi", de: "Nur du und deine Lehrkraft" },
   "course.privat.text": {
     en: "Every minute is built around your goal: an exam date, the Studienkolleg, a job interview. The fastest way forward.",
-    ru: "Каждая минута подстроена под вашу цель: дату экзамена, Studienkolleg, собеседование. Самый быстрый путь.",
+    ru: "Каждая минута подстроена под твою цель: дату экзамена, Studienkolleg, собеседование. Самый быстрый путь.",
     uz: "Har bir daqiqa maqsadingizga moslashtiriladi: imtihon sanasi, Studienkolleg, ish suhbati. Eng tez yo'l.",
     de: "Jede Minute dreht sich um dein Ziel: Prüfungstermin, Studienkolleg, Vorstellungsgespräch. Der schnellste Weg.",
   },
@@ -88,12 +90,12 @@ Object.assign(window.T, {
   "tg.channel.title": { en: "DEUS channel", ru: "Канал DEUS", uz: "DEUS kanali", de: "DEUS-Kanal" },
   "tg.channel.text": { en: "Materials, exam tips, speaking clubs and new student results.", ru: "Материалы, советы к экзаменам, разговорные клубы и новые результаты студентов.", uz: "Materiallar, imtihon maslahatlari, suhbat klublari va talabalarning yangi natijalari.", de: "Materialien, Prüfungstipps, Sprachclubs und neue Ergebnisse unserer Lernenden." },
   "tg.channel.btn": { en: "Subscribe", ru: "Подписаться", uz: "Obuna bo'lish", de: "Abonnieren" },
-  "tg.bot.title": { en: "Sophie — your AI teacher", ru: "Sophie — ваш AI-преподаватель", uz: "Sophie — sizning AI-o'qituvchingiz", de: "Sophie — deine KI-Lehrerin" },
+  "tg.bot.title": { en: "Sophie — your AI teacher", ru: "Sophie — твой AI-преподаватель", uz: "Sophie — sizning AI-o'qituvchingiz", de: "Sophie — deine KI-Lehrerin" },
   "tg.bot.text": { en: "Trial booking, a level check, flashcards, practice chat and homework help — any time.", ru: "Запись на пробный урок, тест уровня, карточки, практика и помощь с домашкой — в любое время.", uz: "Sinov darsiga yozilish, daraja testi, kartochkalar, mashq va uy vazifasiga yordam — istalgan vaqtda.", de: "Probestunde buchen, Einstufungstest, Karteikarten, Übungschat und Hausaufgabenhilfe — jederzeit." },
   "tg.bot.btn": { en: "Open Sophie", ru: "Открыть Sophie", uz: "Sophie'ni ochish", de: "Sophie öffnen" },
 
-  "final.title": { en: "Start with a free lesson", ru: "Начните с бесплатного урока", uz: "Bepul darsdan boshlang", de: "Starte mit einer kostenlosen Stunde" },
-  "final.text": { en: "Find out your level and get a plan to the exam you need.", ru: "Узнайте свой уровень и получите план до нужного экзамена.", uz: "Darajangizni bilib oling va kerakli imtihongacha reja oling.", de: "Finde dein Niveau heraus und bekomme einen Plan bis zu deiner Prüfung." },
+  "final.title": { en: "Start with a free lesson", ru: "Начни с бесплатного урока", uz: "Bepul darsdan boshlang", de: "Starte mit einer kostenlosen Stunde" },
+  "final.text": { en: "Find out your level and get a plan to the exam you need.", ru: "Узнай свой уровень и получи план до нужного экзамена.", uz: "Darajangizni bilib oling va kerakli imtihongacha reja oling.", de: "Finde dein Niveau heraus und bekomme einen Plan bis zu deiner Prüfung." },
 
   // footer
   "foot.tag": { en: "German from A1 to C1 — and everything that comes after: exams, documents, visa, arrival.", ru: "Немецкий от A1 до C1 — и всё, что дальше: экзамены, документы, виза, переезд.", uz: "A1 dan C1 gacha nemis tili — va undan keyingi hamma narsa: imtihonlar, hujjatlar, viza, ko'chib o'tish.", de: "Deutsch von A1 bis C1 — und alles, was danach kommt: Prüfungen, Unterlagen, Visum, Ankunft." },

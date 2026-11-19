@@ -5,6 +5,7 @@
 window.DEUS = {
   links: {
     bot: "https://t.me/attemptobot?start=site",
+    app: "https://t.me/attemptobot?startapp", // opens the DEUS Lernen app inside Telegram
     channel: "https://t.me/deutschesbuch",
     teacher: "https://t.me/azuziz",
   },
