@@ -16,3 +16,5 @@
 .fa-note ul { padding-left: 18px; color: var(--muted); font-size: 14px; display: grid; gap: 4px; }
 .fa-ex { display: grid; gap: 2px; }
 .fa-ex small { color: var(--muted); font-size: 13px; }
+.choices.col .choice.fa { font-size: 16px; line-height: 1.6; text-align: right; }
+.card-ex .fa { font-style: normal; font-size: 19px; }

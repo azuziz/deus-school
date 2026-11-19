@@ -20,6 +20,8 @@
     numbers: ["🔢", "Numbers", "Digits ↔ words"], stems: ["🌱", "Present stems", "Infinitive → stem"],
     conj: ["⚙️", "Verb forms", "Pick the right form"], spoken: ["🗣", "Spoken → written", "Colloquial forms"],
     compound: ["🔗", "Compound verbs", "Light verb and preposition"], build: ["🧱", "Sentences", "Put the words in order"],
+    affix: ["🧬", "Word building", "Stem + suffix → new word"], fill: ["✏️", "Fill the verb", "The book's gap sentences"],
+    rewrite: ["📝", "Rewrite", "Join, transform, report: write it"], text: ["📰", "Reading", "Questions on the text"],
     book: ["📚", "Book exercises", "Think, turn over, compare"], test: ["🏁", "Unit test", "A mix of everything"],
   };
   const faUnit = (n) => state.me.farsi.units.find((item) => item.n === n);
@@ -149,7 +151,7 @@
           view.innerHTML = `${top}
             <div class="card static wk ${mood}">
               <span class="card-hint">${esc(item.sub)}</span>
-              ${item.q ? `<span class="card-ex">${esc(item.q)}</span>` : ""}
+              ${item.q ? `<span class="card-ex" dir="auto">${fa(item.q, item.qfa)}</span>` : ""}
               <span class="card-word fa-built ${item.sep ? "long" : ""}" dir="rtl">${esc(built) || "…"}</span>
               ${answered && !answered.ok ? `<span class="card-tr fa" dir="rtl">${esc(item.a)}</span>` : ""}
             </div>
