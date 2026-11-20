@@ -1307,9 +1307,11 @@
       // 1. Cards: meet the word, turn it over, say how well you knew it. A missed card comes back.
       // `reverse` (every level with a translation, wortkiste "rev"): the translation first, the German
       // word on the back - for recalling the word yourself, as in speaking and writing.
+      // "↩" brings back the card before, turned over, to look at it again or rate it again.
       const cards = (reverse) => {
         const queue = words.slice();
         const total = queue.length;
+        const history = [];   // the deck before each rating, newest last
         let learned = 0, revealed = false;
         const links = (word) => [["fam", "wk_fam"], ["syn", "wk_syn"], ["ant", "wk_ant"]].filter(([key]) => word[key].length)
           .map(([key, label]) => `<div class="link"><span class="tag ${key}">${esc(t(label))}</span>${esc(word[key].join(", "))}</div>`).join("");
@@ -1318,7 +1320,7 @@
           const word = queue[0];
           view.className = "session";
           view.innerHTML = `
-            <div class="session-top">${bar(learned, total)}<em>${learned}/${total}</em>${revealed ? wkFlag(word) : ""}</div>
+            <div class="session-top"><button class="undo" type="button" data-act="undo" ${history.length ? "" : "disabled"}>↩ ${esc(t("card_back"))}</button>${bar(learned, total)}<em>${learned}/${total}</em>${revealed ? wkFlag(word) : ""}</div>
             <div class="card wk ${revealed ? "open" : ""}" data-act="reveal">
               <span class="card-word ${reverse ? "rev" : ""}">${esc(reverse ? word.tr : word.head)}</span>
               ${revealed ? `
@@ -1343,7 +1345,18 @@
         handlers = {
           flag,
           reveal: () => { if (!revealed) { revealed = true; haptic("tap"); draw(); } },
+          undo: () => {
+            const before = history.pop();
+            if (!before) return;
+            queue.splice(0, queue.length, ...before.queue);
+            learned = before.learned;
+            revealed = true;
+            haptic("tap");
+            draw();
+          },
           rate: (data) => {
+            history.push({ queue: queue.slice(), learned });
+            if (history.length > 100) history.shift();
             const word = queue.shift();
             if (data.r === "good") learned += 1;
             else queue.splice(Math.min(data.r === "bad" ? ROUND_GAP_BAD : ROUND_GAP_UNSURE, queue.length), 0, word);

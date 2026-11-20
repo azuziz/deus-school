@@ -255,4 +255,5 @@ window.DEUS_I18N = {
   rm_tease_sub: ["The secret weapon of DEUS students", "Die Geheimwaffe der DEUS-Schüler", "Секретное оружие учеников DEUS", "DEUS o'quvchilarining maxfiy quroli"],
   rm_tease: ["Something special for DEUS students. What's inside stays a secret – until you're one of us.", "Etwas Besonderes für DEUS-Schüler. Was drin ist, bleibt ein Geheimnis – bis du dabei bist.", "Кое-что особенное для учеников DEUS. Что внутри — секрет, пока ты не с нами.", "DEUS o'quvchilari uchun maxsus narsa. Ichida nima borligi — sir, toki siz biz bilan bo'lmaguningizcha."],
   about_done: ["Done", "Fertig", "Готово", "Tayyor"],
+  card_back: ["Back", "Zurück", "Назад", "Orqaga"],
 };
