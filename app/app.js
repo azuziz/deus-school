@@ -226,7 +226,8 @@
       case "verbs": case "grammar": return true;
       case "part": return me.verbs.parts.some((part) => part.part === p.part);
       case "topic": return me.grammar.topics.some((topic) => topic.id === p.id);
-      case "vocab": case "wk": case "rm": case "rmLevel": case "rmExam": case "rmList": return Boolean(me.student);
+      case "vocab": case "wk": return Boolean(me.student);
+      case "rm": case "rmLevel": case "rmExam": case "rmList": return true;   // the exam phrases are open to everyone
       case "wkLevel": return Boolean(lesson());
       case "wkLesson": return Boolean(lesson() && lesson().lessons.some((item) => item.n === p.lesson && item.open));
       default: {
@@ -567,12 +568,13 @@
     const vocabStarted = me.vocab.topics.filter((topic) => topic.pos > 0).length;
     const wkAll = me.wortkiste.levels.flatMap((level) => level.lessons);
     const wkPassed = wkAll.filter((lesson) => lesson.passed).length, wkLessons = me.student ? wkAll.length : 0;
-    // DEUS students get the course tools (Booster, Wortkiste) and no loose extras; everyone else
-    // gets the open exercises, and sees the two student sections with a lock.
+    // DEUS students get the course tools (Booster, Wortkiste, PrüfungsPhrasen) and no loose extras;
+    // everyone else gets the open exercises and the same exam phrases as "Redemittel", and sees the
+    // student sections with a lock - PrüfungsPhrasen as a teaser that doesn't say what's inside.
     const forStudents = (locked) => `
         ${tile("vocab", "🧠", t("vocab"), t("vocab_sub"), vocabStarted, locked ? 0 : me.vocab.topics.length, locked)}
         ${tile("wk", "📦", "Wortkiste", t("wk_sub"), wkPassed, wkLessons, locked)}
-        ${tile("rm", "📝", t("rm"), t("rm_sub"), 0, 0, locked)}`;
+        ${locked ? tile("rmTease", "📝", t("rm"), t("rm_tease_sub"), 0, 0, true) : tile("rm", "📝", t("rm"), t("rm_sub"))}`;
     view.innerHTML = `
       <section class="hello">
         <h1>${esc(me.name ? t("hello_name", { name: me.name }) : t("hello"))}</h1>
@@ -586,6 +588,7 @@
         ${tile("articles", "🎯", t("articles"), "der · die · das")}
         ${tile("prepositions", "🧭", t("prepositions"), "Akkusativ · Dativ · Genitiv")}
         ${tile("sophie", "💬", t("sophie"), t("sophie_sub"))}
+        ${tile("rm", "🗣", "Redemittel", t("rm_sub"))}
         ${forStudents(true)}`}
         ${COURSES.map((course) => course.tile(me, tile)).join("")}
       </section>`;
@@ -595,6 +598,7 @@
       vocab: () => enter("vocab"),
       wk: () => enter("wk"),
       rm: () => enter("rm"),
+      rmTease: () => go("rmTease"),
       articles: () => go("quiz", { kind: "articles" }),
       prepositions: () => go("quiz", { kind: "prepositions" }),
       sophie: () => openChat(),
@@ -1516,13 +1520,16 @@
   const rmLevel = (data, id) => data.levels.find((level) => level.id === id);
   const rmExam = (data, level, exam) => { const found = rmLevel(data, level); return found && found.exams.find((item) => item.id === exam); };
 
-  VIEWS.rm = (params, entry) => {
+  // Students open it as "PrüfungsPhrasen", everyone else as "Redemittel" - the same phrases.
+  // For guests the PrüfungsPhrasen tile is only a teaser (rmTease) and says nothing about them.
+  VIEWS.rmTease = () => {
     title(t("rm"));
-    if (!state.me.student) {
-      view.innerHTML = `<p class="lead">${esc(t("rm_intro"))}</p>${lockPanel()}`;
-      handlers = { ...lockHandlers };
-      return;
-    }
+    view.innerHTML = `<p class="lead">🤫 ${esc(t("rm_tease"))}</p>${lockPanel()}`;
+    handlers = { ...lockHandlers };
+  };
+
+  VIEWS.rm = (params, entry) => {
+    title(state.me.student ? t("rm") : "Redemittel");
     loading(entry, rmLoad, (data) => {
       view.innerHTML = `<p class="lead">${esc(t("rm_intro"))}</p>
         <div class="list">${data.levels.map((level) => row("level", { id: level.id }, level.id.toUpperCase(), level.exams.map((exam) => exam.name.split(":")[0]).join(" · "), "", { text: level.id.toUpperCase(), cls: "gold" })).join("")}</div>`;
@@ -1631,29 +1638,35 @@
       });
       return;
     }
+    // Steps 2 and 3: a tap picks (an answer from the chat's sign-up may already be picked), and the
+    // big button goes on - so a pre-picked answer never looks like a dead end.
     if (answers.step === 1) {
-      view.innerHTML = `<section class="about">${head(2, t("about_level_q", { name: answers.name }))}${chips(["never", ...CEFR], answers.level, "level")}${prevButton}</section>`;
+      view.innerHTML = `<section class="about">${head(2, t("about_level_q", { name: answers.name }))}${chips(["never", ...CEFR], answers.level, "level")}
+        <button class="btn" data-act="next" ${answers.level ? "" : "disabled"}>${esc(t("about_next"))}</button>${prevButton}</section>`;
       handlers.level = (data) => {
         answers.level = data.code;
         if (CEFR.indexOf(answers.target) < CEFR.indexOf(data.code)) answers.target = null;
-        answers.step = 2;
         haptic("tap");
         show();
       };
+      handlers.next = () => { if (answers.level) { answers.step = 2; show(); } };
       return;
     }
     view.innerHTML = `<section class="about">${head(3, t("about_goal_q"))}${chips(CEFR.slice(Math.max(0, CEFR.indexOf(answers.level))), answers.target, "target")}
-      <p class="fine">${esc(t("about_goal_note"))}</p>${prevButton}</section>`;
+      <p class="fine">${esc(t("about_goal_note"))}</p>
+      <button class="btn" data-act="save" ${answers.target ? "" : "disabled"}>${esc(t("about_done"))}</button>${prevButton}</section>`;
     let saving = false;
-    handlers.target = async (data) => {
-      if (saving) return;
+    handlers.target = (data) => { answers.target = data.code; haptic("tap"); show(); };
+    handlers.save = async (data, node) => {
+      if (saving || !answers.target) return;
       saving = true;
-      answers.target = data.code;
+      node.disabled = true;
       try {
         const result = await api("about_set", { name: answers.name, level: answers.level, target: answers.target });
         Object.assign(state.me, { about: result.about, name: result.name, progress: result.progress, wortkiste: result.wortkiste });
       } catch (error) {
         saving = false;
+        node.disabled = false;
         toast(t("err_save"));
         return;
       }
