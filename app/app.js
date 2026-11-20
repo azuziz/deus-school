@@ -168,8 +168,8 @@
   // `paths` keeps, per section, the deepest screen last gone *into* - walking back out with Back
   // doesn't erase it. Exercises in progress aren't kept: one reopens on the screen it was started from.
   const PLACE_KEY = "deus.place";
-  const SECTIONS = ["verbs", "grammar", "vocab", "wk"];   // separate courses add theirs (DEUS.course)
-  const KEPT_VIEWS = ["verbs", "part", "grammar", "topic", "vocab", "wk", "wkLevel", "wkLesson"];
+  const SECTIONS = ["verbs", "grammar", "vocab", "wk", "rm"];   // separate courses add theirs (DEUS.course)
+  const KEPT_VIEWS = ["verbs", "part", "grammar", "topic", "vocab", "wk", "wkLevel", "wkLesson", "rm", "rmLevel", "rmExam", "rmList"];
   const cloud = IN_TELEGRAM && tg.CloudStorage && tg.isVersionAtLeast && tg.isVersionAtLeast("6.9") ? tg.CloudStorage : null;
   let place = { open: [], paths: {}, topic: null };
   let placeTimer = 0;
@@ -226,7 +226,7 @@
       case "verbs": case "grammar": return true;
       case "part": return me.verbs.parts.some((part) => part.part === p.part);
       case "topic": return me.grammar.topics.some((topic) => topic.id === p.id);
-      case "vocab": case "wk": return Boolean(me.student);
+      case "vocab": case "wk": case "rm": case "rmLevel": case "rmExam": case "rmList": return Boolean(me.student);
       case "wkLevel": return Boolean(lesson());
       case "wkLesson": return Boolean(lesson() && lesson().lessons.some((item) => item.n === p.lesson && item.open));
       default: {
@@ -278,6 +278,7 @@
     if (["grammar", "topic", "round"].includes(first.view)) return "grammar";
     if (["vocab", "words"].includes(first.view)) return "vocab";
     if (first.view.startsWith("wk")) return "wk";
+    if (first.view.startsWith("rm")) return "rm";
     const course = COURSES.find((item) => first.view in item.views);
     return course ? course.id : views[0];
   }
@@ -570,7 +571,8 @@
     // gets the open exercises, and sees the two student sections with a lock.
     const forStudents = (locked) => `
         ${tile("vocab", "🧠", t("vocab"), t("vocab_sub"), vocabStarted, locked ? 0 : me.vocab.topics.length, locked)}
-        ${tile("wk", "📦", "Wortkiste", t("wk_sub"), wkPassed, wkLessons, locked)}`;
+        ${tile("wk", "📦", "Wortkiste", t("wk_sub"), wkPassed, wkLessons, locked)}
+        ${tile("rm", "📝", t("rm"), t("rm_sub"), 0, 0, locked)}`;
     view.innerHTML = `
       <section class="hello">
         <h1>${esc(me.name ? t("hello_name", { name: me.name }) : t("hello"))}</h1>
@@ -592,6 +594,7 @@
       grammar: () => enter("grammar"),
       vocab: () => enter("vocab"),
       wk: () => enter("wk"),
+      rm: () => enter("rm"),
       articles: () => go("quiz", { kind: "articles" }),
       prepositions: () => go("quiz", { kind: "prepositions" }),
       sophie: () => openChat(),
@@ -1505,6 +1508,74 @@
     handlers = { mistakes: () => go("deck", { kind: "mistakes" }), chat: () => openChat() };
   };
 
+  // ---- Redemittel (src/redemittel.py): exam phrases for Sprechen and Schreiben, DEUS students only.
+  // Level -> exam -> Sprechen or Schreiben -> the parts of that exam with their phrases.
+  // A tap on a phrase copies it.
+  let rmCache = null;
+  const rmLoad = async () => rmCache || (rmCache = await api("redemittel"));
+  const rmLevel = (data, id) => data.levels.find((level) => level.id === id);
+  const rmExam = (data, level, exam) => { const found = rmLevel(data, level); return found && found.exams.find((item) => item.id === exam); };
+
+  VIEWS.rm = (params, entry) => {
+    title(t("rm"));
+    if (!state.me.student) {
+      view.innerHTML = `<p class="lead">${esc(t("rm_intro"))}</p>${lockPanel()}`;
+      handlers = { ...lockHandlers };
+      return;
+    }
+    loading(entry, rmLoad, (data) => {
+      view.innerHTML = `<p class="lead">${esc(t("rm_intro"))}</p>
+        <div class="list">${data.levels.map((level) => row("level", { id: level.id }, level.id.toUpperCase(), level.exams.map((exam) => exam.name.split(":")[0]).join(" · "), "", { text: level.id.toUpperCase(), cls: "gold" })).join("")}</div>`;
+      handlers = { level: (d) => go("rmLevel", { level: d.id }) };
+    });
+  };
+
+  VIEWS.rmLevel = ({ level }, entry) => {
+    title(`${t("rm")} · ${String(level).toUpperCase()}`);
+    loading(entry, rmLoad, (data) => {
+      const found = rmLevel(data, level);
+      if (!found) { back(); return; }
+      view.innerHTML = `<p class="lead">${esc(t("rm_exam_q"))}</p>
+        <div class="list">${found.exams.map((exam) => row("exam", { id: exam.id }, exam.name, "", "", { text: exam.id === "goethe" ? "GZ" : exam.id === "telc" ? "telc" : "TD" })).join("")}</div>`;
+      handlers = { exam: (d) => go("rmExam", { level, exam: d.id }) };
+    });
+  };
+
+  VIEWS.rmExam = ({ level, exam }, entry) => {
+    title(`${t("rm")} · ${String(level).toUpperCase()}`);
+    loading(entry, rmLoad, (data) => {
+      const found = rmExam(data, level, exam);
+      if (!found) { back(); return; }
+      view.innerHTML = `<p class="lead"><b>${esc(found.name)}</b></p>
+        <div class="list">
+          ${row("skill", { skill: "sprechen" }, "Sprechen", found.sprechen.map((part) => part.title.split(" · ")[0]).join(" · "), "", { text: "🗣" })}
+          ${row("skill", { skill: "schreiben" }, "Schreiben", found.schreiben.map((part) => part.title.split(" · ")[0]).join(" · "), "", { text: "✍️" })}
+        </div>`;
+      handlers = { skill: (d) => go("rmList", { level, exam, skill: d.skill }) };
+    });
+  };
+
+  VIEWS.rmList = ({ level, exam, skill }, entry) => {
+    title(skill === "sprechen" ? "Sprechen" : "Schreiben");
+    loading(entry, rmLoad, (data) => {
+      const found = rmExam(data, level, exam);
+      const parts = found && found[skill];
+      if (!parts) { back(); return; }
+      view.innerHTML = `<p class="fine">${esc(found.name)} · ${esc(t("rm_copy_hint"))}</p>
+        ${parts.map((part) => `<section class="rm-part">
+          <h3>${esc(part.title)}</h3>
+          <p class="fine">${esc(part.note)}</p>
+          ${part.blocks.map((block) => `<div class="rm-block"><p class="kicker">${esc(block.title)}</p>
+            <ul>${block.items.map((item) => `<li><button type="button" data-act="copy" data-text="${esc(item)}">${esc(item)}</button></li>`).join("")}</ul></div>`).join("")}
+        </section>`).join("")}`;
+      handlers = {
+        copy: async (d) => {
+          try { await navigator.clipboard.writeText(d.text); toast(t("rm_copied")); haptic("tap"); } catch (e) { /* no clipboard here */ }
+        },
+      };
+    });
+  };
+
   // ---- about me: name, level and goal, asked once on the first start (miniapp._about_set) and
   // changeable in the School tab. The goal drives the path card on the home screen; a student's
   // level opens the Wortkiste levels below it.
@@ -1593,7 +1664,7 @@
   };
 
   // ---- statistics, for the teacher (src/usage.py report)
-  const OWN_LABEL = { verbs: "verbs", grammar: "grammar", vocab: "vocab", booster: "vocab", articles: "articles", prepositions: "prepositions", stats: "stats" };
+  const OWN_LABEL = { rm: "rm", verbs: "verbs", grammar: "grammar", vocab: "vocab", booster: "vocab", articles: "articles", prepositions: "prepositions", stats: "stats" };
 
   function featureName(key) {
     const [source, name] = key.split(":");
