@@ -210,6 +210,7 @@
     if (!stack.length || stack[0].view !== "home") return; // the other tabs don't move the place
     const below = [];
     for (const entry of stack.slice(1)) {
+      if (entry.view === "bonus") continue;   // a doorway: the section inside is what is kept
       if (!KEPT_VIEWS.includes(entry.view)) break;
       below.push({ view: entry.view, params: entry.params });
     }
@@ -271,10 +272,12 @@
     if (views.includes("about")) return "profile";
     if (views.includes("typing")) return "typing";
     if (stack.some((entry) => entry.view === "deck" && entry.params.kind === "supertest")) return "supertest";
-    const first = stack[1];
+    const first = stack.slice(1).find((entry) => entry.view !== "bonus") || stack[1];
+    if (first && first.view === "bonus") return "bonus";
     if (!first) return views[0];   // home, progress, school
     if (first.view === "deck") return "verbs";
     if (first.view === "quiz") return first.params.kind;   // articles, prepositions
+    if (first.view.startsWith("ladder")) return first.params.game === "art" ? "articles" : "prepositions";
     if (["verbs", "part"].includes(first.view)) return "verbs";
     if (["grammar", "topic", "round"].includes(first.view)) return "grammar";
     if (["vocab", "words"].includes(first.view)) return "vocab";
@@ -477,6 +480,11 @@
     if (me.student) for (const level of me.wortkiste.levels) {
       if (level.ready) shares[`wk:${level.id}`] = { name: `Wortkiste ${level.label}`, done: level.lessons.filter((lesson) => lesson.passed).length, total: level.lessons.length };
     }
+    for (const game of Object.keys(me.ladder || {})) {
+      for (const level of me.ladder[game].levels) {
+        shares[`${game}:${level.id}`] = { name: `${LADDER[game].name()} ${level.id.toUpperCase()}`, done: passedRounds(level, me.ladder[game].pass), total: level.rounds.length };
+      }
+    }
     return shares;
   }
 
@@ -609,6 +617,13 @@
     // DEUS students get the course tools (Booster, Wortkiste, PrüfungsPhrasen) and no loose extras;
     // everyone else gets the open exercises and the same exam phrases as "Redemittel", and sees the
     // student sections with a lock - PrüfungsPhrasen as a teaser that doesn't say what's inside.
+    const ladderTile = (act, game, sub) => {
+      const lad = ladderOf(game);
+      if (!lad) return tile(act, LADDER[game].icon, LADDER[game].name(), sub);
+      const done = lad.levels.reduce((sum, level) => sum + passedRounds(level, lad.pass), 0);
+      const total = lad.levels.reduce((sum, level) => sum + level.rounds.length, 0);
+      return tile(act, LADDER[game].icon, LADDER[game].name(), `${lad.current.level.toUpperCase()} · ${sub}`, done, total);
+    };
     const forStudents = (locked) => `
         ${tile("vocab", "🧠", t("vocab"), t("vocab_sub"), vocabStarted, locked ? 0 : me.vocab.topics.length, locked)}
         ${tile("wk", "📦", "Wortkiste", t("wk_sub"), wkPassed, wkLessons, locked)}
@@ -621,11 +636,11 @@
       ${pathCard(me)}
       <section class="tiles">
         ${tile("verbs", "🔤", t("verbs"), t("verbs_sub"), me.verbs.learned.length, me.verbs.parts.length)}
-        ${tile("grammar", "📘", t("grammar"), t("grammar_sub"), grammarDone, me.grammar.topics.length)}
+        ${me.student ? tile("bonus", "🎁", "DEUS Bonus", t("bonus_sub")) : tile("grammar", "📘", t("grammar"), t("grammar_sub"), grammarDone, me.grammar.topics.length)}
         ${tile("wb", "📖", "DEUS Wörterbuch", t("wb_sub"))}
         ${me.student ? forStudents(false) : `
-        ${tile("articles", "🎯", t("articles"), "der · die · das")}
-        ${tile("prepositions", "🧭", t("prepositions"), "Akkusativ · Dativ · Genitiv")}
+        ${ladderTile("articles", "art", "der · die · das")}
+        ${ladderTile("prepositions", "praep", "Akkusativ · Dativ · Genitiv")}
         ${tile("sophie", "💬", t("sophie"), t("sophie_sub"))}
         ${tile("rm", "🗣", "Redemittel", t("rm_sub"))}
         ${forStudents(true)}`}
@@ -639,8 +654,9 @@
       rm: () => enter("rm"),
       rmTease: () => go("rmTease"),
       wb: () => go("wb"),
-      articles: () => go("quiz", { kind: "articles" }),
-      prepositions: () => go("quiz", { kind: "prepositions" }),
+      bonus: () => go("bonus"),
+      articles: () => openLadder("art"),
+      prepositions: () => openLadder("praep"),
       sophie: () => openChat(),
       ...Object.fromEntries(COURSES.map((course) => [course.id, () => enter(course.id)])),
     };
@@ -1037,6 +1053,173 @@
       if (!tasks.length) { back(); return; }
       draw();
     });
+  };
+
+  // ---- Artikel and Präpositionen on the level ladder (src/ladder.py): A1 to C2, rounds played in
+  // order, 80 % opens the next one, missed items come back in later rounds, a badge for every level.
+  const LADDER = { art: { name: () => t("articles"), icon: "🎯" }, praep: { name: () => t("prepositions"), icon: "🧭" } };
+  const ladderOf = (game) => (state.me.ladder || {})[game];
+  const passedRounds = (level, pass) => level.rounds.filter((r) => r.best != null && r.best >= pass).length;
+
+  /** The tile: straight to the level being played; Back leads to all levels. */
+  function openLadder(game) {
+    const lad = ladderOf(game);
+    if (!lad) return;
+    stack.push({ view: "ladder", params: { game } }, { view: "ladderLevel", params: { game, level: lad.current.level } });
+    render(true);
+  }
+
+  VIEWS.ladder = ({ game }) => {
+    const lad = ladderOf(game);
+    title(LADDER[game].name());
+    view.innerHTML = `<div class="list">${lad.levels.map((level) => {
+      const open = level.rounds[0].open, done = passedRounds(level, lad.pass);
+      const mark = { text: level.id.toUpperCase(), cls: level.done ? "ok" : level.id === lad.current.level ? "gold" : "" };
+      return row("level", { id: level.id }, `${LADDER[game].name()} ${level.id.toUpperCase()}`, open ? "" : t("ladder_locked_level"),
+        open ? `<span class="count">${level.done ? "🏅" : `${done}/${level.rounds.length}`}</span>` : "🔒", mark);
+    }).join("")}</div>`;
+    handlers = {
+      level: (data) => {
+        const level = lad.levels.find((item) => item.id === data.id);
+        if (level.rounds[0].open) go("ladderLevel", { game, level: data.id }); else toast(t("ladder_locked_level"));
+      },
+    };
+  };
+
+  VIEWS.ladderLevel = ({ game, level }) => {
+    const lad = ladderOf(game);
+    const mine = lad.levels.find((item) => item.id === level);
+    title(`${LADDER[game].name()} · ${level.toUpperCase()}`);
+    const next = mine.rounds.find((r) => r.open && (r.best == null || r.best < lad.pass));
+    view.innerHTML = `
+      ${mine.done ? `<p class="badge-won">🏅 ${esc(t("ladder_level_done"))}</p>` : ""}
+      <div class="level-line">${bar(passedRounds(mine, lad.pass), mine.rounds.length)}</div>
+      ${next ? `<button class="btn" data-act="play" data-n="${next.n}">▶ ${esc(t("ladder_round", { n: next.n }))}</button>` : ""}
+      <div class="rounds">${mine.rounds.map((r) => `<button class="round ${r.best != null && r.best >= lad.pass ? "ok" : ""}" type="button" data-act="play" data-n="${r.n}" ${r.open ? "" : "disabled"}>
+        <b>${r.open ? r.n : "🔒"}</b><small>${r.best != null ? `${r.best}%` : ""}</small></button>`).join("")}</div>
+      <button class="btn ghost" data-act="all">${esc(t("ladder_levels"))}</button>`;
+    handlers = {
+      play: (data) => go("ladderPlay", { game, level, round: Number(data.n) }),
+      all: () => { if (stack.length > 2 && stack[stack.length - 2].view === "ladder") back(); else swap("ladder", { game }); },
+    };
+  };
+
+  VIEWS.ladderPlay = ({ game, level, round }, entry) => {
+    title(`${LADDER[game].name()} · ${level.toUpperCase()} · ${t("ladder_round", { n: round })}`);
+    loading(entry, () => api("ladder_round", { game, level, round }), ({ items }) => {
+      const queue = shuffle(items);
+      const total = queue.length;
+      let index = 0, right = 0, picked = null;
+      const missed = [], got = [], mistakes = [];
+
+      const draw = () => {
+        const item = queue[index];
+        const answered = picked !== null;
+        const ok = answered && picked === item.answer;
+        view.className = "session";
+        view.innerHTML = `
+          <div class="session-top">${bar(index + (answered ? 1 : 0), total)}</div>
+          <div class="card static ${answered ? (ok ? "right" : "wrong") : ""}">
+            ${item.repeat ? `<span class="tag">↺ ${esc(t("ladder_repeat"))}</span>` : ""}
+            <span class="card-word ${item.q.length > 30 ? "long" : ""}">${esc(item.q)}</span>
+            ${item.sub ? `<span class="card-hint">${esc(item.sub)}</span>` : ""}
+            ${answered ? `<span class="card-tr">${esc(item.solution)}</span>
+              ${!ok && item.rule ? `<span class="card-ex">💡 ${esc(t(`art_rule_${item.rule}`))}</span>` : ""}
+              ${item.hint ? `<span class="card-ex">💡 ${esc(item.hint)}</span>` : ""}` : ""}
+          </div>
+          <div class="session-bottom">
+            <div class="choices ${item.options.length <= 3 && item.options.every((o) => o.length < 8) ? "" : "col"}">
+              ${item.options.map((option, i) => `<button class="btn choice ${answered && i === item.answer ? "is-right" : ""} ${answered && i === picked && !ok ? "is-wrong" : ""}" data-act="pick" data-i="${i}" ${answered ? "disabled" : ""}>${esc(option)}</button>`).join("")}
+            </div>
+            ${answered ? `<button class="btn" data-act="next">${esc(t("next"))}</button>` : ""}
+          </div>`;
+      };
+
+      const finish = async () => {
+        const percent = Math.round((100 * right) / total);
+        const passed = percent >= ladderOf(game).pass;
+        const lad = ladderOf(game);
+        const levels = lad.levels.map((item) => item.id);
+        const mine = lad.levels.find((item) => item.id === level);
+        const nextRound = round < mine.rounds.length ? { level, round: round + 1 } : levels.indexOf(level) < levels.length - 1 ? { level: levels[levels.indexOf(level) + 1], round: 1 } : null;
+        haptic(passed ? "success" : "error");
+        doneScreen({
+          emoji: passed ? "🏆" : "💪",
+          headline: `${percent}%`,
+          lines: [t("wk_right_of", { right, total }), passed ? t("ladder_passed") : t("wk_not_yet", { n: lad.pass })],
+          review: mistakeReview(mistakes),
+          buttons: [
+            ...(passed && nextRound ? [{ act: "next", label: t("ladder_next") }] : []),
+            { act: "again", label: t("again") },
+            { act: "back", label: t("ladder_to_level") },
+          ],
+        });
+        handlers = { again: show, back, next: () => { stack.pop(); stack.pop(); go("ladderLevel", { game, level: nextRound.level }); go("ladderPlay", { game, ...nextRound }); } };
+        const before = levelShares();
+        const result = await saveResult("ladder_result", { game, level, round, right, total, missed, got });
+        if (!result) return;
+        state.me.ladder[game] = result.ladder;
+        state.me.progress = result.progress;
+        drawStreak();
+        showReward(result.reward, before, `${game}:${level}`);
+      };
+
+      handlers = {
+        pick: (data) => {
+          if (picked !== null) return;
+          picked = Number(data.i);
+          const item = queue[index];
+          if (picked === item.answer) { right += 1; got.push(item.id); }
+          else { missed.push(item.id); mistakes.push({ sub: item.sub, prompt: item.q, given: item.options[picked], answer: item.solution }); }
+          haptic(picked === item.answer ? "success" : "error");
+          draw();
+        },
+        next: () => { index += 1; picked = null; if (index < total) draw(); else finish(); },
+      };
+      keys = choiceKeys;
+      draw();
+    });
+  };
+
+  /** The badges to collect: one per level of each ladder game. */
+  function badgesPanel(me) {
+    if (!me.ladder) return "";
+    return `<h3 class="section">${esc(t("badges_title"))}</h3>
+      <div class="badges">${Object.keys(LADDER).map((game) => `
+        <div class="badge-row"><small>${esc(LADDER[game].name())}</small>
+          <div>${(me.ladder[game] ? me.ladder[game].levels : []).map((level) => `<span class="badge-medal ${level.done ? "won" : ""}" title="${esc(`${LADDER[game].name()} ${level.id.toUpperCase()}`)}">
+            <i>${level.done ? LADDER[game].icon : "🔒"}</i><b>${level.id.toUpperCase()}</b></span>`).join("")}</div>
+        </div>`).join("")}
+      </div>`;
+  }
+
+  // ---- DEUS Bonus, for students: the place for a free minute instead of scrolling. The games
+  // (Artikel, Präpositionen on the level ladder) and Grammatik (rules and practice per topic) - on
+  // the student's home screen this tile takes the place of Grammatik. Guests have all three as
+  // tiles of their own.
+  VIEWS.bonus = () => {
+    const me = state.me;
+    title("DEUS Bonus");
+    const ladderRow = (act, game, sub) => {
+      const lad = ladderOf(game);
+      const done = lad ? lad.levels.reduce((sum, level) => sum + passedRounds(level, lad.pass), 0) : 0;
+      const total = lad ? lad.levels.reduce((sum, level) => sum + level.rounds.length, 0) : 0;
+      return row(act, {}, LADDER[game].name(), lad ? `${lad.current.level.toUpperCase()} · ${sub}` : sub,
+        total ? `<span class="count">${done}/${total}</span>` : "", { text: LADDER[game].icon });
+    };
+    const grammarDone = Object.keys(me.grammar.done).length;
+    view.innerHTML = `
+      <p class="bonus-intro">${esc(t("bonus_intro"))}</p>
+      <h3 class="section">🎮 ${esc(t("bonus_games"))}</h3>
+      <div class="list">
+        ${ladderRow("articles", "art", "der · die · das")}
+        ${ladderRow("prepositions", "praep", "Akkusativ · Dativ · Genitiv")}
+      </div>
+      <h3 class="section">📘 ${esc(t("bonus_learn"))}</h3>
+      <div class="list">
+        ${row("grammar", {}, t("grammar"), t("grammar_sub"), `<span class="count">${grammarDone}/${me.grammar.topics.length}</span>`, { text: "📘" })}
+      </div>`;
+    handlers = { articles: () => openLadder("art"), prepositions: () => openLadder("praep"), grammar: () => enter("grammar") };
   };
 
   // ---- DEUS Wörterbuch (src/woerterbuch.py): every Wortkiste word as its full card, for everyone.
@@ -1629,6 +1812,7 @@
         ${me.student ? stat(me.wortkiste.levels.flatMap((item) => item.lessons).filter((lesson) => lesson.passed).length, t("st_wk")) : ""}
         ${stat(level ? levelLabel(level) : "—", t(p.level_check ? "st_level_check" : "st_level"))}
       </section>
+      ${badgesPanel(me)}
       <h3 class="section">${esc(t("tests"))}</h3>
       <div class="panel">
         <p>${esc(p.tests ? t("tests_recent", { n: p.tests, best: p.tests_best }) : t("tests_none"))}</p>
@@ -1805,7 +1989,7 @@
   };
 
   // ---- statistics, for the teacher (src/usage.py report)
-  const OWN_LABEL = { wb: "wb", rm: "rm", verbs: "verbs", grammar: "grammar", vocab: "vocab", booster: "vocab", articles: "articles", prepositions: "prepositions", stats: "stats" };
+  const OWN_LABEL = { bonus: "bonus", wb: "wb", rm: "rm", verbs: "verbs", grammar: "grammar", vocab: "vocab", booster: "vocab", articles: "articles", prepositions: "prepositions", stats: "stats" };
 
   function featureName(key) {
     const [source, name] = key.split(":");
