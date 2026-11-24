@@ -280,6 +280,7 @@
     if (["vocab", "words"].includes(first.view)) return "vocab";
     if (first.view.startsWith("wk")) return "wk";
     if (first.view.startsWith("rm")) return "rm";
+    if (first.view === "wb") return "wb";
     const course = COURSES.find((item) => first.view in item.views);
     return course ? course.id : views[0];
   }
@@ -406,6 +407,14 @@
     if (handler) handler(node.dataset, node);
   });
   $("back").addEventListener("click", back);
+  // Typing an answer: the phone's keyboard takes half the screen, so while an input in an exercise
+  // has the focus the card shrinks to its text (CSS #view.session.kb) and stays above the keyboard.
+  view.addEventListener("focusin", (event) => {
+    if (event.target.matches("input") && view.classList.contains("session")) view.classList.add("kb");
+  });
+  view.addEventListener("focusout", () => {
+    setTimeout(() => { if (!view.contains(document.activeElement) || !document.activeElement.matches("input")) view.classList.remove("kb"); }, 50);
+  });
   $("tabs").addEventListener("click", (event) => {
     const button = event.target.closest("[data-tab]");
     if (button) { haptic("tap"); tab(button.dataset.tab); }
@@ -613,6 +622,7 @@
       <section class="tiles">
         ${tile("verbs", "🔤", t("verbs"), t("verbs_sub"), me.verbs.learned.length, me.verbs.parts.length)}
         ${tile("grammar", "📘", t("grammar"), t("grammar_sub"), grammarDone, me.grammar.topics.length)}
+        ${tile("wb", "📖", "DEUS Wörterbuch", t("wb_sub"))}
         ${me.student ? forStudents(false) : `
         ${tile("articles", "🎯", t("articles"), "der · die · das")}
         ${tile("prepositions", "🧭", t("prepositions"), "Akkusativ · Dativ · Genitiv")}
@@ -628,6 +638,7 @@
       wk: () => enter("wk"),
       rm: () => enter("rm"),
       rmTease: () => go("rmTease"),
+      wb: () => go("wb"),
       articles: () => go("quiz", { kind: "articles" }),
       prepositions: () => go("quiz", { kind: "prepositions" }),
       sophie: () => openChat(),
@@ -1028,20 +1039,76 @@
     });
   };
 
+  // ---- DEUS Wörterbuch (src/woerterbuch.py): every Wortkiste word as its full card, for everyone.
+  // A search runs on Enter only (each one counts for guests), and says where the word comes from.
+  function wbCard(word) {
+    const links = [["fam", "wk_fam"], ["syn", "wk_syn"], ["ant", "wk_ant"]].filter(([key]) => (word[key] || []).length)
+      .map(([key, label]) => `<div class="link"><span class="tag ${key}">${esc(t(label))}</span>${esc(word[key].join(", "))}</div>`).join("");
+    return `<article class="card wk open wb-card">
+      <span class="wb-where">${esc(word.level)} · ${esc(word.lesson)}</span>
+      <span class="card-word">${esc(word.head)}</span>
+      ${word.entry !== word.head ? `<span class="card-grammar">${esc(word.entry)}</span>` : ""}
+      <span class="card-tr">${esc(word.tr)}</span>
+      ${word.ex ? `<span class="card-ex">${esc(word.ex)}</span>` : ""}
+      ${word.kol ? `<div class="link"><span class="tag kol">${esc(t("wk_kol"))}</span>${esc(word.kol.full)}</div>` : ""}
+      ${word.prep ? `<div class="link"><span class="tag kol">${esc(t("wk_s_prep"))}</span>${esc(word.prep.text.replace("___", word.prep.answer))}</div>` : ""}
+      ${links}
+      ${word.phr ? `<div class="link phr"><b>${esc(word.phr.de)}</b><small>${esc(word.phr.tr)}</small></div>` : ""}
+    </article>`;
+  }
+
+  VIEWS.wb = (params, entry) => {
+    title("DEUS Wörterbuch");
+    view.innerHTML = `
+      <p class="lead">${esc(t("wb_intro"))}</p>
+      <form class="search" data-form><input type="search" placeholder="${esc(t("wb_placeholder"))}" value="${esc(entry.query || "")}" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="search"></form>
+      <div class="wb-results" id="wbResults"></div>`;
+    const input = view.querySelector("input");
+    const box = $("wbResults");
+    let asked = 0;
+    const lookUp = async () => {
+      const q = input.value.trim();
+      entry.query = q;
+      if (q.length < 2) { box.innerHTML = ""; return; }
+      const mine = ++asked;
+      box.innerHTML = `<div class="loading"><i></i><i></i><i></i></div>`;
+      try {
+        const result = await api("wb_search", { q });
+        if (mine !== asked || current() !== entry) return;
+        if (result.limit) {
+          box.innerHTML = `<p class="lead"><b>${esc(t("wb_limit"))}</b></p>${lockPanel()}`;
+          handlers = { ...lockHandlers };
+          return;
+        }
+        box.innerHTML = result.words.length ? result.words.map(wbCard).join("") : `<p class="fine">${esc(t("wb_none"))}</p>`;
+      } catch (error) {
+        if (mine === asked) box.innerHTML = `<p class="fine">${esc(t("err_net"))}</p>`;
+      }
+    };
+    view.querySelector("form").addEventListener("submit", (event) => { event.preventDefault(); input.blur(); lookUp(); });
+    if (entry.query) lookUp();
+    else input.focus({ preventScroll: true });
+  };
+
   // ---- vocabulary booster
+  // What it is for, in three short blocks instead of one long paragraph.
+  const vocabIntro = () => `<div class="intro-blocks">
+      ${[["🎯", "vb_why"], ["📚", "vb_what"], ["🚀", "vb_how"]].map(([icon, key]) => `<div class="intro-block"><span class="intro-icon">${icon}</span><div><b>${esc(t(`${key}_t`))}</b><p>${esc(t(key))}</p></div></div>`).join("")}
+      <p class="intro-tag">${esc(t("vb_tag"))}</p>
+    </div>`;
   const fold = (text) => text.toLowerCase().replace(/ä/g, "a").replace(/ö/g, "o").replace(/ü/g, "u").replace(/ß/g, "ss");
 
   VIEWS.vocab = (params, entry) => {
     const vocab = state.me.vocab;
     title(t("vocab"));
     if (!state.me.student) {
-      view.innerHTML = `<p class="lead">${esc(t("vocab_intro"))}</p>${lockPanel()}`;
+      view.innerHTML = `${vocabIntro()}${lockPanel()}`;
       handlers = { ...lockHandlers };
       return;
     }
     const last = vocab.topics.find((topic) => topic.id === place.topic && topic.pos < topic.total);
     view.innerHTML = `
-      <p class="lead">${esc(t("vocab_intro"))}</p>
+      ${vocabIntro()}
       ${last ? `<div class="list">${row("topic", { id: last.id }, last.name, t("vocab_continue"), `<span class="count">${last.pos}/${last.total}</span>`, { text: "▶", cls: "gold" })}</div>` : ""}
       <form class="search" data-form><input type="search" placeholder="${esc(t("vocab_search"))}" value="${esc(entry.query || "")}" autocapitalize="off" autocorrect="off" enterkeyhint="search"></form>
       <div class="list" id="topics"></div>`;
@@ -1426,7 +1493,8 @@
           if (!queue.length) return finish(right, total, step === "test" ? mistakes : null);
           const item = queue[0];
           const state2 = answered ? (answered.ok ? "right" : "wrong") : "";
-          view.className = "session";
+          // A typed answer opens the phone's keyboard: the compact layout keeps the card in sight.
+          view.className = item.typed && !answered ? "session kb" : "session";
           view.innerHTML = `
             <div class="session-top">${bar(done, total)}${wkFlag(answered ? item.word : null)}</div>
             <div class="card static wk ${state2}">
@@ -1737,7 +1805,7 @@
   };
 
   // ---- statistics, for the teacher (src/usage.py report)
-  const OWN_LABEL = { rm: "rm", verbs: "verbs", grammar: "grammar", vocab: "vocab", booster: "vocab", articles: "articles", prepositions: "prepositions", stats: "stats" };
+  const OWN_LABEL = { wb: "wb", rm: "rm", verbs: "verbs", grammar: "grammar", vocab: "vocab", booster: "vocab", articles: "articles", prepositions: "prepositions", stats: "stats" };
 
   function featureName(key) {
     const [source, name] = key.split(":");
