@@ -49,7 +49,7 @@ svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width:
 /* header */
 .top { position: sticky; top: 0; z-index: 10; background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(10px); border-bottom: 1px solid var(--line); }
 .top-in { display: flex; align-items: center; gap: 24px; height: 64px; }
-.logo { display: flex; align-items: center; gap: 10px; text-decoration: none; font: 700 19px Unbounded, sans-serif; }
+.logo { display: flex; flex: none; align-items: center; gap: 10px; white-space: nowrap; text-decoration: none; font: 700 19px Unbounded, sans-serif; }
 .logo small { font: 500 12px Manrope, sans-serif; color: var(--muted); margin-left: 2px; }
 .flag { display: grid; gap: 2px; width: 22px; }
 .flag i { height: 5px; border-radius: 2px; }
@@ -67,13 +67,15 @@ svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width:
 .menu-open .burger i:nth-child(1) { transform: translateY(6px) rotate(45deg); }
 .menu-open .burger i:nth-child(2) { opacity: 0; }
 .menu-open .burger i:nth-child(3) { transform: translateY(-6px) rotate(-45deg); }
-@media (max-width: 1199px) {
+@media (max-width: 1379px) {
   .menu-open .nav { display: flex; position: fixed; inset: 64px 0 auto 0; flex-direction: column; align-items: stretch; gap: 0; padding: 8px 16px 20px; background: var(--bg); border-bottom: 1px solid var(--line); box-shadow: 0 20px 40px rgba(0,0,0,.15); }
   .menu-open .nav a { padding: 14px 4px; font-size: 17px; border-bottom: 1px solid var(--line); }
   .menu-open .nav a[aria-current] { box-shadow: none; color: var(--red); }
   .menu-open .nav .nav-cta { display: flex; margin-top: 16px; border: 0; color: #16181d; }
 }
-@media (min-width: 1200px) {
+@media (min-width: 1380px) {
+  .top .wrap { max-width: 1400px; }
+  .nav { gap: 16px; }
   .nav { display: flex; }
   .langs { margin-left: 8px; }
   .burger { display: none; }
@@ -423,3 +425,9 @@ svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width:
 .cmp.new { border: 2px solid var(--gold); }
 .cmp.new li::before { content: "✓"; color: var(--gold); font-weight: 700; }
 @media (min-width: 980px) { .steps.three { grid-template-columns: repeat(3, 1fr); } }
+/* "Your certificate" - the teaser card after the real ones */
+.res-you { border: 2px dashed var(--gold); background: color-mix(in srgb, var(--gold) 7%, var(--card)); display: flex; flex-direction: column; }
+.res-you .lvl { background: var(--gold); color: #16181d; }
+.res-you .row b { color: var(--gold); }
+.you-text { margin: 16px 0 14px; color: var(--muted); font-size: 15px; }
+.res-you .btn { margin-top: auto; align-self: flex-start; }

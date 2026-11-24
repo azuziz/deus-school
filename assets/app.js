@@ -7,6 +7,8 @@
 
   const NAV = [
     ["kurse", "/kurse/"],
+    ["stk", "/studienkolleg/"],
+    ["ausbildung", "/ausbildung/"],
     ["visum", "/visum/"],
     ["results", "/results/"],
     ["lernen", "/lernen/"],
@@ -124,6 +126,18 @@
   }
 
   const isIntl = (r) => Boolean(r.country) && r.country !== "uz";   // shown on /international/ too
+  // The last card among the certificates: "yours could be next" - a C1 with your name still to come.
+  function yourCard() {
+    const rows = [["Lesen", 92], ["Hören", 88], ["Schreiben", 85], ["Sprechen", 95]]
+      .map(([label, pct]) => `<div class="row"><span>${esc(label)}</span><span class="bar"><i style="width:${pct}%"></i></span><b>?</b></div>`).join("");
+    return `<article class="res res-you">
+      <div class="res-top"><span class="lvl">C1</span><div><div class="exam">Goethe-Zertifikat C1</div><div class="who">${esc(t("you.who"))}</div></div><span class="grade">✨ ${esc(t("you.badge"))}</span></div>
+      <div class="scores">${rows}</div>
+      <p class="you-text">${esc(t("you.text"))}</p>
+      <a class="btn primary" href="${esc(D.links.bot)}" target="_blank" rel="noopener">${esc(t("cta.trial"))}</a>
+    </article>`;
+  }
+
   const LONG_REVIEW = 700; // characters; longer reviews start folded with a "Read more" button
 
   function reviewCard(r) {
@@ -206,8 +220,8 @@
 
   const RENDER = {
     courses: () => D.courses.map(courseCard).join(""),
-    results: () => D.results.map(resultCard).join(""),
-    resultsTeaser: () => D.results.slice(0, 3).map(resultCard).join(""),
+    results: () => D.results.map(resultCard).join("") + yourCard(),
+    resultsTeaser: () => D.results.slice(0, 2).map(resultCard).join("") + yourCard(),
     intlResults: () => D.intlResults.map(resultCard).join(""),
     reviews: () => D.reviews.map(reviewCard).join(""),
     intlReviews: () => D.reviews.filter(isIntl).map(reviewCard).join(""),

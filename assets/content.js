@@ -21,7 +21,7 @@ window.DEUS = {
   // eur = price per person for one month (12 lessons). Names are in i18n/common.js (course.<id>.*).
   courses: [
     { id: "klasse", eur: 100, minutes: 100, perWeek: 3, lessons: 12, size: [7, 10] },
-    { id: "privatgruppe", eur: 150, minutes: 90, perWeek: 3, lessons: 12, size: [3, 6] },
+    { id: "privatgruppe", eur: 160, minutes: 90, perWeek: 3, lessons: 12, size: [3, 6] },
     { id: "privat", eur: 250, minutes: 60, perWeek: 3, lessons: 12, size: [1, 1] },
   ],
 

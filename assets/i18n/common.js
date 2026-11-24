@@ -4,6 +4,8 @@ window.T = window.T || {};
 Object.assign(window.T, {
   // navigation
   "nav.kurse": { en: "Courses", ru: "Курсы", uz: "Kurslar", de: "Kurse" },
+  "nav.stk": { en: "Studienkolleg", ru: "Studienkolleg", uz: "Studienkolleg", de: "Studienkolleg" },
+  "nav.ausbildung": { en: "Ausbildung", ru: "Ausbildung", uz: "Ausbildung", de: "Ausbildung" },
   "nav.visum": { en: "Visa", ru: "Виза", uz: "Viza", de: "Visum" },
   "nav.results": { en: "Results", ru: "Результаты", uz: "Natijalar", de: "Ergebnisse" },
   "nav.lernen": { en: "DEUS Lernen", ru: "DEUS Lernen", uz: "DEUS Lernen", de: "DEUS Lernen" },
@@ -76,6 +78,14 @@ Object.assign(window.T, {
   },
 
   // results and reviews
+  "you.badge": { en: "Your certificate", ru: "Твой сертификат", uz: "Sizning sertifikatingiz", de: "Dein Zertifikat" },
+  "you.who": { en: "Your name · coming soon", ru: "Твоё имя · скоро", uz: "Sizning ismingiz · tez orada", de: "Dein Name · bald" },
+  "you.text": {
+    en: "The next certificate could be yours. Start with a free trial lesson.",
+    ru: "Следующий сертификат может быть твоим. Начни с бесплатного пробного урока.",
+    uz: "Keyingi sertifikat sizniki bo'lishi mumkin. Bepul sinov darsidan boshlang.",
+    de: "Das nächste Zertifikat könnte deins sein. Fang mit einer kostenlosen Probestunde an.",
+  },
   "results.next": { en: "+ {exam}: {level} after {n} months", ru: "+ {exam}: {level} через {n} мес.", uz: "+ {exam}: {n} oydan so'ng {level}", de: "+ {exam}: {level} nach {n} Monaten" },
   "results.months": { en: "Preparation: {n} months", ru: "Подготовка: {n} мес.", uz: "Tayyorgarlik: {n} oy", de: "Vorbereitung: {n} Monate" },
   "reviews.title": { en: "What students say", ru: "Что говорят студенты", uz: "Talabalar fikri", de: "Das sagen unsere Lernenden" },
