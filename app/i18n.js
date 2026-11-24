@@ -256,4 +256,8 @@ window.DEUS_I18N = {
   rm_tease: ["Something special for DEUS students. What's inside stays a secret – until you're one of us.", "Etwas Besonderes für DEUS-Schüler. Was drin ist, bleibt ein Geheimnis – bis du dabei bist.", "Кое-что особенное для учеников DEUS. Что внутри — секрет, пока ты не с нами.", "DEUS o'quvchilari uchun maxsus narsa. Ichida nima borligi — sir, toki siz biz bilan bo'lmaguningizcha."],
   about_done: ["Done", "Fertig", "Готово", "Tayyor"],
   card_back: ["Back", "Zurück", "Назад", "Orqaga"],
+  review_title: ["Your mistakes: {n}", "Deine Fehler: {n}", "Твои ошибки: {n}", "Xatolaringiz: {n}"],
+  review_none: ["No mistakes – perfect! 🎯", "Keine Fehler – perfekt! 🎯", "Ни одной ошибки — идеально! 🎯", "Birorta ham xato yo'q — a'lo! 🎯"],
+  ll_left: ["{n} to go", "Noch {n}", "Осталось: {n}", "Qoldi: {n}"],
+  ll_done: ["All done! 🏆", "Alles geschafft! 🏆", "Всё пройдено! 🏆", "Hammasi bajarildi! 🏆"],
 };

@@ -423,7 +423,11 @@
     </button>`;
   }
 
-  const bar = (done, total) => `<span class="meter"><i style="width:${total ? Math.round((100 * done) / total) : 0}%"></i></span>`;
+  // A progress line fills faster at the start and slower near the end: half the way fills three
+  // quarters of the line (1 - (1 - p)²), so the goal always feels close. The numbers next to it
+  // stay exact. `linear` for a line that has its percentage written next to it.
+  const eased = (done, total) => (total ? 100 * (1 - Math.pow(1 - Math.min(Math.max(done, 0), total) / total, 2)) : 0);
+  const bar = (done, total, linear) => `<span class="meter"><i style="width:${total ? (linear ? Math.round((100 * done) / total) : eased(done, total).toFixed(1)) : 0}%"></i></span>`;
 
   function openChat(start) {
     const link = `https://t.me/${CFG.bot}${start ? `?start=${start}` : ""}`;
@@ -446,7 +450,7 @@
     state.me.progress = result.progress;
     if (result.learned) state.me.verbs.learned = result.learned;
     drawStreak();
-    showReward(result.reward, before);
+    showReward(result.reward, before, ["verbs", "typing", "supertest", "mistakes"].includes(kind) ? "verbs:" : null);
   }
 
   // ---- rewards: what a finished exercise brought (gamify.py in the bot decides the numbers).
@@ -480,9 +484,11 @@
   }
 
   /** Fill the reward box of the done screen that is showing now (if the student is still on it). */
-  function showReward(reward, before) {
+  function showReward(reward, before, key) {
     const box = $("reward");
     if (!box || !reward) return;
+    const after = key ? levelShares()[key] : null;
+    const from = before && key && before[key] ? before[key].done : after && after.done;
     const game = state.me.progress.game;
     if (game) Object.assign(game, { today: reward.today, xp_week: reward.xp_week, xp_total: reward.xp_total, shields: reward.shields, ahead: reward.ahead });
     const lines = [];
@@ -497,8 +503,15 @@
     box.innerHTML = `
       <span class="xp">+${reward.xp} XP</span>
       ${stone ? `<p class="milestone ${stone.full ? "full" : ""}">${esc(stone.full ? `🏆 ${t("ms_full", stone)}` : t("ms_half", stone))}</p>` : ""}
+      ${after && after.total ? `<div class="level-line">
+        <div><b>${esc(after.name)}</b><em>${after.done}/${after.total}</em></div>
+        <span class="meter grow"><i style="width:${eased(from, after.total).toFixed(1)}%"></i></span>
+        <small>${esc(after.done >= after.total ? t("ll_done") : t("ll_left", { n: after.total - after.done }))}</small>
+      </div>` : ""}
       ${lines.map((line) => `<p>${line}</p>`).join("")}`;
     box.hidden = false;
+    const grow = box.querySelector(".meter.grow i");   // the line grows from before to now
+    if (grow && after) requestAnimationFrame(() => requestAnimationFrame(() => { grow.style.width = `${eased(after.done, after.total).toFixed(1)}%`; }));
     if (stone && stone.full) {
       const emoji = view.querySelector(".done-emoji");
       if (emoji) emoji.textContent = "🏆";
@@ -523,15 +536,30 @@
   }
   const lockHandlers = { "lock-trial": () => openChat("trial"), "lock-write": askForAccess };
 
-  function doneScreen({ emoji, headline, lines, buttons }) {
-    view.className = "center";
+  function doneScreen({ emoji, headline, lines, buttons, review }) {
+    view.className = review ? "" : "center";   // a long review must scroll from the top
     view.innerHTML = `<div class="done">
       <div class="done-emoji">${emoji}</div>
       <h2>${esc(headline)}</h2>
       ${lines.map((line) => `<p>${esc(line)}</p>`).join("")}
       <div class="reward" id="reward" hidden></div>
+      ${review || ""}
       <div class="stack">${buttons.map((b, i) => `<button class="btn ${i ? "ghost" : ""}" data-act="${b.act}">${esc(b.label)}</button>`).join("")}</div>
     </div>`;
+  }
+
+  /** After a test: every question missed at the first try, with the answer given and the right one. */
+  function mistakeReview(mistakes) {
+    if (!mistakes.length) return `<p class="review-none">${esc(t("review_none"))}</p>`;
+    return `<section class="review">
+      <h3>${esc(t("review_title", { n: mistakes.length }))}</h3>
+      ${mistakes.map((m) => `<div class="review-item">
+        ${m.sub ? `<small>${esc(m.sub)}</small>` : ""}
+        <b>${esc(m.prompt)}</b>
+        <span class="review-wrong">✗ ${esc(m.given || "—")}</span>
+        <span class="review-right">✓ ${esc(m.answer)}</span>
+      </div>`).join("")}
+    </section>`;
   }
 
   // The first thing on the home screen: today's goal (one exercise keeps the streak), then the
@@ -979,7 +1007,8 @@
         if (!result) return;
         state.me.grammar.done = result.done;
         if (result.progress) { state.me.progress = result.progress; drawStreak(); }
-        showReward(result.reward, before);
+        const topic = state.me.grammar.topics.find((item) => item.id === id);
+        showReward(result.reward, before, topic ? `grammar:${topic.level}` : null);
       };
 
       handlers = {
@@ -1276,7 +1305,7 @@
     loading(entry, () => wkWords(level, lesson), (words) => {
       const flag = wkFlagHandler(level, lesson);
 
-      const finish = async (right, total) => {
+      const finish = async (right, total, mistakes) => {
         const pass = state.me.wortkiste.pass;
         const percent = Math.round((100 * right) / total);
         const learn = WK_LEARN.includes(step);
@@ -1288,6 +1317,7 @@
           emoji: learn ? "🎉" : passed ? "🏆" : "💪",
           headline: learn ? t("wk_cards_done") : `${percent}%`,
           lines: learn ? [t(step === "rev" ? "wk_rev_next" : "wk_cards_next")] : [t("wk_right_of", { right, total }), t(passed ? "wk_passed" : "wk_not_yet", { n: pass })],
+          review: mistakes ? mistakeReview(mistakes) : "",
           buttons: [
             ...(passed && next ? [{ act: "next", label: t("wk_next_lesson") }] : []),
             { act: "again", label: t("again") },
@@ -1301,7 +1331,7 @@
         state.me.wortkiste.levels = result.levels;
         state.me.progress = result.progress;
         drawStreak();
-        showReward(result.reward, before);
+        showReward(result.reward, before, `wk:${level}`);
       };
 
       // 1. Cards: meet the word, turn it over, say how well you knew it. A missed card comes back.
@@ -1375,9 +1405,10 @@
         const total = queue.length;
         let done = 0, right = 0, answered = null;
         const seen = new Set();
+        const mistakes = [];   // first-try misses, for the review after the test
 
         const draw = () => {
-          if (!queue.length) return finish(right, total);
+          if (!queue.length) return finish(right, total, step === "test" ? mistakes : null);
           const item = queue[0];
           const state2 = answered ? (answered.ok ? "right" : "wrong") : "";
           view.className = "session";
@@ -1417,6 +1448,7 @@
           answered = result;
           const item = queue[0];
           if (!seen.has(item) && result.ok) right += 1;
+          if (!seen.has(item) && !result.ok) mistakes.push({ sub: item.sub, prompt: item.prompt, given: result.given, answer: item.answer });
           seen.add(item);
           haptic(result.ok ? "success" : "error");
           draw(); // right or wrong, the answer and its example stay up until "Next"
@@ -1623,7 +1655,7 @@
     const percent = Math.floor((100 * path.done) / path.total);
     return `<section class="path">
         <div class="path-top"><b>🎯 ${esc(t("path_title", { target: levelLabel(path.target) }))}</b><em>${percent}%</em></div>
-        ${bar(path.done, path.total)}
+        ${bar(path.done, path.total, true)}
         <small>${esc(t(path.done >= path.total ? "path_done" : percent >= 75 ? "path_s75" : percent >= 50 ? "path_s50" : percent >= 25 ? "path_s25" : "path_s0"))}</small>
       </section>`;
   }

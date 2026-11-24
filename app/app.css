@@ -365,3 +365,17 @@ form.typing { gap: 10px; }
 .rm-block button:active { color: var(--gold); }
 .undo { flex: none; padding: 5px 11px; border-radius: 99px; border: 1px solid var(--line); background: var(--card); font-size: 13px; font-weight: 700; color: var(--muted); cursor: pointer; }
 .undo:disabled { opacity: .35; cursor: default; }
+
+.review { width: 100%; display: grid; gap: 8px; text-align: left; margin-top: 6px; }
+.review h3 { margin: 0; font-size: 16px; }
+.review-item { display: grid; gap: 3px; padding: 12px 14px; border-radius: var(--radius); background: var(--card); border: 1px solid var(--line); }
+.review-item small { color: var(--muted); font-size: 12px; }
+.review-wrong { color: var(--red); text-decoration: line-through; }
+.review-right { color: var(--green); font-weight: 700; }
+.review-none { font-weight: 700; color: var(--green); }
+.level-line { display: grid; gap: 6px; width: 100%; text-align: left; padding: 10px 0 2px; }
+.level-line div { display: flex; justify-content: space-between; gap: 10px; font-size: 14px; }
+.level-line em { font-style: normal; font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; }
+.level-line small { color: var(--muted); font-size: 12px; }
+.meter.grow { height: 8px; }
+.meter.grow i { transition: width 1.1s cubic-bezier(.2, .8, .2, 1); }
