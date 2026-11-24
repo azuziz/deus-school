@@ -1,5 +1,5 @@
-/* Farsi - the teacher's own Persian course (only the teacher's chat gets `me.farsi`).
-   Kept apart from the German courses: app.js loads this file only for the teacher, and it plugs in
+/* Farsi - the Persian course for the teacher and the learners in FarsiChatIds (only they get `me.farsi`).
+   Kept apart from the German courses: app.js loads this file only for them, and it plugs in
    through window.DEUS.course(), using only the shared helpers app.js hands out in window.DEUS.core.
    Its material and progress come from the bot's farsi package (src/farsi/api.py). */
 (() => {
@@ -77,8 +77,31 @@
       }
       const queue = payload.items.slice();
       const total = queue.length;
-      const seen = new Set();
+      let seen = new Set();
       let done = 0, right = 0, answered = null, open = false, placed = [];
+      // "↩ Back" (or ←) steps back through the items already answered, newest first: an answered
+      // item comes back as it was left (your pick and the right one marked), a card comes back
+      // turned over to rate again. The items after it are asked again, so the score stays honest.
+      const history = [];
+      const missed = [];   // { item, given } for every wrong answer, listed on the done screen
+      const snapshot = () => ({ queue: queue.slice(), done, right, seen: new Set(seen), answered, open, placed: placed.slice(), missed: missed.length });
+
+      // The right answer of an item in plain words, and how to show a given answer.
+      const answerOf = (item) => (item.t === "flip" ? item.back.filter(([text]) => text).map(([text, on]) => fa(text, on)).join(" · ")
+        : fa(item.a, item.t !== "choice" || item.ofa));
+      const givenOf = (item, given) => fa(given, item.t !== "choice" || item.ofa);
+
+      const missedList = () => {
+        const shown = new Set();
+        const rows = missed.filter(({ item }) => !shown.has(item) && shown.add(item)).map(({ item, given }) => `<li>
+            <span class="fa-missed-q" dir="auto">${item.sub ? `<small>${esc(item.sub)}</small>` : ""}${fa(item.q, item.qfa)}</span>
+            ${given ? `<span class="fa-missed-no" dir="auto">✗ ${givenOf(item, given)}</span>` : ""}
+            <span class="fa-missed-ok" dir="auto">✓ ${answerOf(item)}</span>
+            ${item.after ? `<small dir="auto">${esc(item.after)}</small>` : ""}
+          </li>`);
+        const heading = !payload.scored ? `To look at again (${rows.length})` : rows.length === 1 ? "Your mistake" : `Your ${rows.length} mistakes`;
+        return rows.length ? `<div class="fa-missed"><h3>${heading}</h3><ol>${rows.join("")}</ol></div>` : "";
+      };
 
       const finish = () => {
         const percent = payload.scored ? Math.round((100 * right) / total) : 100;
@@ -91,6 +114,7 @@
           lines: payload.scored ? [`${right} / ${total}`] : [],
           buttons: [...(next ? [{ act: "next", label: `Next: ${FA_STEPS[next][1]}` }] : []), { act: "again", label: t("again") }, { act: "back", label: "Back to the unit" }],
         });
+        view.querySelector("#reward").insertAdjacentHTML("beforebegin", missedList());
         on({ again: show, back, next: () => swap("faStep", { n, step: next }) });
         save(payload.scored ? right : 1, payload.scored ? total : 1);
       };
@@ -100,16 +124,28 @@
         const item = queue[0];
         answered = { ok, given };
         if (ok && !seen.has(item)) right += 1;
+        if (!ok) missed.push({ item, given });
         seen.add(item);
         haptic(ok ? "success" : "error");
         draw();
       };
 
-      const advance = () => {
+      const move = () => {
         const item = queue.shift();
         if (answered.ok || !payload.repeat) done += 1;
         else queue.splice(Math.min(ROUND_GAP_BAD, queue.length), 0, item);
         answered = null; open = false; placed = [];
+        draw();
+      };
+      const remember = () => { history.push(snapshot()); if (history.length > 100) history.shift(); };
+      const advance = () => { remember(); move(); };
+      const stepBack = () => {
+        const before = history.pop();
+        if (!before) return;
+        queue.splice(0, queue.length, ...before.queue);
+        ({ done, right, seen, answered, open, placed } = before);
+        missed.length = before.missed;
+        haptic("tap");
         draw();
       };
 
@@ -117,7 +153,7 @@
         if (!queue.length) return finish();
         const item = queue[0];
         const mood = answered ? (answered.ok ? "right" : "wrong") : "";
-        const top = `<div class="session-top">${bar(done, total)}<em>${Math.min(done + 1, total)}/${total}</em></div>`;
+        const top = `<div class="session-top"><button class="undo" type="button" data-act="prev" ${history.length ? "" : "disabled"}>↩ ${esc(t("card_back"))}</button>${bar(done, total)}<em>${Math.min(done + 1, total)}/${total}</em></div>`;
         const next = `<button class="btn" data-act="next">${esc(t("next"))}</button>`;
         view.className = "session";
         if (item.t === "flip") {
@@ -165,15 +201,27 @@
         }
       };
 
-      onKeys(choiceKeys);   // 1-4 pick, Enter or Space presses the main button
+      // 1-4 pick, Enter or Space presses the main button, ← goes back one item.
+      onKeys((event) => {
+        if (event.key === "ArrowLeft" && view.querySelector('[data-act="prev"]:not(:disabled)')) { event.preventDefault(); stepBack(); } else choiceKeys(event);
+      });
       on({
         next: advance,
+        prev: stepBack,
         reveal: () => { if (!open) { open = true; haptic("tap"); draw(); } },
-        rate: (data) => { answered = { ok: data.r === "good" }; if (answered.ok && !seen.has(queue[0])) right += 1; seen.add(queue[0]); haptic("tap"); advance(); },
+        rate: (data) => {
+          remember();   // a card comes back turned over, before it was rated
+          answered = { ok: data.r === "good" };
+          if (answered.ok && !seen.has(queue[0])) right += 1;
+          if (!answered.ok) missed.push({ item: queue[0], given: "" });
+          seen.add(queue[0]);
+          haptic("tap");
+          move();
+        },
         pick: (data) => settle(data.v === queue[0].a, data.v),
         tile: (data) => { placed.push(Number(data.i)); haptic("tap"); draw(); },
         undo: () => { placed.pop(); draw(); },
-        check: () => settle(placed.map((i) => queue[0].tiles[i]).join(queue[0].sep) === queue[0].a, ""),
+        check: () => { const built = placed.map((i) => queue[0].tiles[i]).join(queue[0].sep); settle(built === queue[0].a, built); },
       });
       draw();
     });
