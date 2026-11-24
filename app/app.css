@@ -379,3 +379,4 @@ form.typing { gap: 10px; }
 .level-line small { color: var(--muted); font-size: 12px; }
 .meter.grow { height: 8px; }
 .meter.grow i { transition: width 1.1s cubic-bezier(.2, .8, .2, 1); }
+#flag { margin-left: auto; }

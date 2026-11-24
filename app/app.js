@@ -339,6 +339,7 @@
     handlers = {};
     keys = null;
     view.className = "";
+    if (flagWord) wkFlag(null);
     VIEWS[entry.view](entry.params || {}, entry);
     window.scrollTo(0, 0);
     const root = stack.length === 1 && TABS.includes(entry.view);
@@ -504,7 +505,7 @@
       <span class="xp">+${reward.xp} XP</span>
       ${stone ? `<p class="milestone ${stone.full ? "full" : ""}">${esc(stone.full ? `🏆 ${t("ms_full", stone)}` : t("ms_half", stone))}</p>` : ""}
       ${after && after.total ? `<div class="level-line">
-        <div><b>${esc(after.name)}</b><em>${after.done}/${after.total}</em></div>
+        <div><b>${esc(after.name)}</b></div>
         <span class="meter grow"><i style="width:${eased(from, after.total).toFixed(1)}%"></i></span>
         <small>${esc(after.done >= after.total ? t("ll_done") : t("ll_left", { n: after.total - after.done }))}</small>
       </div>` : ""}
@@ -699,7 +700,7 @@
         const verb = queue[0];
         view.className = "session";
         view.innerHTML = `
-          <div class="session-top">${bar(learned, total)}<em>${learned}/${total}</em></div>
+          <div class="session-top">${bar(learned, total)}</div>
           <button class="card ${revealed ? "open" : ""}" type="button" data-act="reveal">
             <span class="card-word">${esc(verb.inf)}</span>
             ${revealed ? `<span class="card-forms"><b>${esc(verb.praet)}</b><b>${esc(verb.perf)}</b></span>
@@ -771,7 +772,7 @@
         const verb = verbs[index];
         view.className = "session";
         view.innerHTML = `
-          <div class="session-top">${bar(index, verbs.length)}<em>${index + 1}/${verbs.length}</em></div>
+          <div class="session-top">${bar(index, verbs.length)}</div>
           <form class="typing" data-form autocomplete="off">
             <div class="typing-word">${esc(verb.inf)}</div>
             <label><span>Präteritum</span><input name="praeteritum" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="next"></label>
@@ -812,7 +813,7 @@
             ${result.correct[field] ? "" : `<s>${esc(typed || "—")}</s>`}
           </div>`;
         view.innerHTML = `
-          <div class="session-top">${bar(index + 1, verbs.length)}<em>${index + 1}/${verbs.length}</em></div>
+          <div class="session-top">${bar(index + 1, verbs.length)}</div>
           <div class="typing">
             <div class="typing-word">${esc(verb.inf)}</div>
             ${line("Präteritum", "praeteritum", given.praeteritum, result.solution.praet)}
@@ -870,7 +871,7 @@
         const answered = picked !== null;
         view.className = "session";
         view.innerHTML = `
-          <div class="session-top">${bar(learned, total)}<em>${learned}/${total}</em></div>
+          <div class="session-top">${bar(learned, total)}</div>
           <div class="card static ${answered ? (picked === item.answer ? "right" : "wrong") : ""}">
             <span class="card-word">${esc(item.prompt)}</span>
             <span class="card-hint">${esc(answered ? item.after : item.sub)}</span>
@@ -978,7 +979,7 @@
         const correct = picked === task.answer;
         view.className = "session";
         view.innerHTML = `
-          <div class="session-top">${bar(index + (answered ? 1 : 0), tasks.length)}<em>${index + 1}/${tasks.length}</em></div>
+          <div class="session-top">${bar(index + (answered ? 1 : 0), tasks.length)}</div>
           <div class="task ${answered ? (correct ? "right" : "wrong") : ""}">
             <p class="task-q">${esc(answered ? task.solution : task.q)}</p>
             ${answered && task.hint ? `<p class="note">💡 ${esc(task.hint)}</p>` : ""}
@@ -1123,7 +1124,21 @@
     return wkCache[key];
   }
 
-  const wkFlag = (word) => `<button class="flag" type="button" data-act="flag" data-entry="${esc(word.entry)}" title="${esc(t("wk_flag"))}" aria-label="${esc(t("wk_flag"))}">⚑</button>`;
+  // The "something is wrong with this word" flag sits in the header next to the streak, so the
+  // progress row never changes width when a card is turned. wkFlag(word) shows it for that word,
+  // wkFlag(null) hides it; every new screen hides it (render).
+  let flagWord = null;
+  function wkFlag(word) {
+    flagWord = word;
+    const node = $("flag");
+    node.hidden = !word;
+    node.disabled = false;
+    node.title = node.ariaLabel = t("wk_flag");
+    return "";
+  }
+  $("flag").addEventListener("click", () => {
+    if (flagWord && handlers.flag) handlers.flag({ entry: flagWord.entry }, $("flag"));
+  });
   const wkFlagHandler = (level, lesson) => async (data, node) => {
     node.disabled = true;
     try {
@@ -1350,7 +1365,7 @@
           const word = queue[0];
           view.className = "session";
           view.innerHTML = `
-            <div class="session-top"><button class="undo" type="button" data-act="undo" ${history.length ? "" : "disabled"}>↩ ${esc(t("card_back"))}</button>${bar(learned, total)}<em>${learned}/${total}</em>${revealed ? wkFlag(word) : ""}</div>
+            <div class="session-top"><button class="undo" type="button" data-act="undo" ${history.length ? "" : "disabled"}>↩ ${esc(t("card_back"))}</button>${bar(learned, total)}${wkFlag(revealed ? word : null)}</div>
             <div class="card wk ${revealed ? "open" : ""}" data-act="reveal">
               <span class="card-word ${reverse ? "rev" : ""}">${esc(reverse ? word.tr : word.head)}</span>
               ${revealed ? `
@@ -1413,7 +1428,7 @@
           const state2 = answered ? (answered.ok ? "right" : "wrong") : "";
           view.className = "session";
           view.innerHTML = `
-            <div class="session-top">${bar(done, total)}<em>${Math.min(done + 1, total)}/${total}</em>${answered ? wkFlag(item.word) : ""}</div>
+            <div class="session-top">${bar(done, total)}${wkFlag(answered ? item.word : null)}</div>
             <div class="card static wk ${state2}">
               <span class="card-hint">${esc(item.sub)}</span>
               <span class="card-word ${item.prompt.length > 30 ? "long" : ""}">${esc(item.prompt)}</span>
