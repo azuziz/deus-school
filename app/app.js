@@ -522,7 +522,7 @@
       <span class="xp">+${reward.xp} XP</span>
       ${stone ? `<p class="milestone ${stone.full ? "full" : ""}">${esc(stone.full ? `🏆 ${t("ms_full", stone)}` : t("ms_half", stone))}</p>` : ""}
       ${after && after.total ? `<div class="level-line">
-        <div><b>${esc(after.name)}</b></div>
+        <div><b>${esc(after.name)}</b><em>${after.done}/${after.total}</em></div>
         <span class="meter grow"><i style="width:${eased(from, after.total).toFixed(1)}%"></i></span>
         <small>${esc(after.done >= after.total ? t("ll_done") : t("ll_left", { n: after.total - after.done }))}</small>
       </div>` : ""}
@@ -720,6 +720,7 @@
     loading(entry, loadContent, (content) => {
       const queue = verbsFor(content, kind, part);
       const total = queue.length;
+      const history = [];   // the deck before each rating, newest last ("↩" goes back one)
       let learned = 0, repeats = 0, revealed = false;
 
       const draw = () => {
@@ -727,7 +728,7 @@
         const verb = queue[0];
         view.className = "session";
         view.innerHTML = `
-          <div class="session-top">${bar(learned, total)}</div>
+          <div class="session-top"><button class="undo" type="button" data-act="undo" ${history.length ? "" : "disabled"}>↩ ${esc(t("card_back"))}</button>${bar(learned, total)}</div>
           <button class="card ${revealed ? "open" : ""}" type="button" data-act="reveal">
             <span class="card-word">${esc(verb.inf)}</span>
             ${revealed ? `<span class="card-forms"><b>${esc(verb.praet)}</b><b>${esc(verb.perf)}</b></span>
@@ -768,7 +769,19 @@
 
       handlers = {
         reveal: () => { if (!revealed) { revealed = true; haptic("tap"); draw(); } },
+        undo: () => {
+          const before = history.pop();
+          if (!before) return;
+          queue.splice(0, queue.length, ...before.queue);
+          learned = before.learned;
+          repeats = before.repeats;
+          revealed = true;
+          haptic("tap");
+          draw();
+        },
         rate: (data) => {
+          history.push({ queue: queue.slice(), learned, repeats });
+          if (history.length > 100) history.shift();
           const card = queue.shift();
           if (data.r === "good") learned += 1;
           else {
@@ -1231,7 +1244,7 @@
       <span class="wb-where">${esc(word.level)} · ${esc(word.lesson)}</span>
       <span class="card-word">${esc(word.head)}</span>
       ${word.entry !== word.head ? `<span class="card-grammar">${esc(word.entry)}</span>` : ""}
-      <span class="card-tr">${esc(word.tr)}</span>
+      ${word.tr ? `<span class="card-tr">${esc(word.tr)}</span>` : ""}
       ${word.ex ? `<span class="card-ex">${esc(word.ex)}</span>` : ""}
       ${word.kol ? `<div class="link"><span class="tag kol">${esc(t("wk_kol"))}</span>${esc(word.kol.full)}</div>` : ""}
       ${word.prep ? `<div class="link"><span class="tag kol">${esc(t("wk_s_prep"))}</span>${esc(word.prep.text.replace("___", word.prep.answer))}</div>` : ""}
