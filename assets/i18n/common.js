@@ -71,10 +71,10 @@ Object.assign(window.T, {
   "course.schedule": { en: "{n}× a week, {m} min", ru: "{n} раза в неделю по {m} мин", uz: "Haftasiga {n} marta, {m} daqiqadan", de: "{n}× pro Woche, je {m} Min." },
   "course.lessons": { en: "{n} lessons a month", ru: "{n} уроков в месяц", uz: "Oyiga {n} ta dars", de: "{n} Stunden im Monat" },
   "course.rateNote": {
-    en: "So'm prices use the average Central Bank of Uzbekistan rate of the last 6 months (≈ {rate} so'm per euro), rounded up.",
-    ru: "Цены в сумах посчитаны по среднему курсу ЦБ Узбекистана за последние 6 месяцев (≈ {rate} сум за евро) и округлены вверх.",
-    uz: "So'mdagi narxlar O'zbekiston Markaziy bankining so'nggi 6 oylik o'rtacha kursi (1 yevro ≈ {rate} so'm) bo'yicha hisoblanib, yuqoriga yaxlitlangan.",
-    de: "Die So'm-Preise beruhen auf dem Durchschnittskurs der Zentralbank Usbekistans der letzten 6 Monate (≈ {rate} So'm pro Euro), aufgerundet.",
+    en: "* The so'm amount follows the euro rate: the average Central Bank of Uzbekistan rate of the last 6 months (≈ {rate} so'm per euro), rounded up to 10 000. The price in euro stays the same.",
+    ru: "* Сумма в сумах зависит от курса евро: средний курс ЦБ Узбекистана за последние 6 месяцев (≈ {rate} сум за евро), округлено вверх до 10 000. Цена в евро не меняется.",
+    uz: "* So'mdagi summa yevro kursiga bog'liq: O'zbekiston Markaziy bankining so'nggi 6 oylik o'rtacha kursi (1 yevro ≈ {rate} so'm), 10 000 gacha yuqoriga yaxlitlangan. Yevrodagi narx o'zgarmaydi.",
+    de: "* Der So'm-Betrag richtet sich nach dem Eurokurs: Durchschnittskurs der Zentralbank Usbekistans der letzten 6 Monate (≈ {rate} So'm pro Euro), auf 10 000 aufgerundet. Der Preis in Euro bleibt gleich.",
   },
 
   // results and reviews

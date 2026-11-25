@@ -13,7 +13,7 @@ window.DEUS = {
   // Numbers shown under the headline.
   experience: { teachingYears: 10, germanyYears: 5 },
 
-  // So'm prices are worked out from euro: eur x eurRate, rounded UP to the next 100 000.
+  // So'm prices are worked out from euro: eur x eurRate, rounded UP to the next 10 000 and marked * (the euro price is the price).
   // eurRate = average Central Bank of Uzbekistan rate, 16.04-15.10.2026 (weekly values, 13 206 - 14 363).
   eurRate: 13790,
 

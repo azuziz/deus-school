@@ -46,7 +46,7 @@
   const dec = (n) => (lang === "en" ? String(n) : String(n).replace(".", ","));
   const som = (n) => `${num(n)} ${t("cur.som")}`;
   const eur = (n) => (lang === "en" ? `€${num(n)}` : `${num(n)} €`);
-  const toSom = (e) => Math.ceil((e * D.eurRate) / 100000) * 100000;
+  const toSom = (e) => Math.ceil((e * D.eurRate) / 10000) * 10000;   // up to the next 10 000; see course.rateNote (*)
   const toEur = (s) => Math.round(s / D.eurRate / 5) * 5;
 
   // ---------- shared header and footer ----------
@@ -97,7 +97,7 @@
       <h3 class="tier-name">${esc(t(`course.${c.id}.name`))}</h3>
       <p class="tier-sub">${esc(t(`course.${c.id}.sub`))}</p>
       <div class="amount"><b>${eur(c.eur)}</b> <span>${esc(t(c.id === "privat" ? "course.perMonth" : "course.perPersonMonth"))}</span></div>
-      <div class="uzs">≈ ${som(toSom(c.eur))}</div>
+      <div class="uzs">≈ ${som(toSom(c.eur))}*</div>
       <ul>
         <li>${esc(size)}</li>
         <li>${esc(t("course.schedule", { n: c.perWeek, m: c.minutes }))}</li>
