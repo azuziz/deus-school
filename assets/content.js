@@ -176,7 +176,7 @@ window.DEUS = {
   // Move a session to clubSessions after it took place.
   // Topics in reserve: studienkolleg, wohnungssuche, visum (texts are in i18n/pages.js).
   clubUpcoming: [
-    { when: "2026-11-29T15:00:00+01:00", topic: "spielend", guest: false },
+    { when: "2026-11-29T15:00:00+01:00", topic: "games", guest: false },
     { topic: "kulturschock", guest: null },
     { topic: "ki", guest: null },
     { guest: null },
