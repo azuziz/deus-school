@@ -173,10 +173,18 @@ window.DEUS = {
   // and Berlin time; leave it out and the date is shown blurred ("coming soon"). topic = a key
   // club.topic.<topic> in i18n/pages.js; leave it out and the topic is blurred too (a teaser).
   // guest: null = mystery guest, { name: "...", note: "..." } once revealed, false = no guest (no guest line).
+  // note can also be { en, ru, uz, de } when it should be translated.
   // Move a session to clubSessions after it took place.
   // Topics in reserve: studienkolleg, wohnungssuche, visum (texts are in i18n/pages.js).
   clubUpcoming: [
-    { when: "2026-11-29T15:00:00+01:00", topic: "games", guest: false },
+    {
+      when: "2026-11-29T15:00:00+01:00",
+      topic: "games",
+      guest: {
+        name: "Fabian",
+        note: { en: "Gaming expert from Germany", ru: "Эксперт по играм из Германии", uz: "Germaniyadan o'yinlar bo'yicha ekspert", de: "Gaming-Experte aus Deutschland" },
+      },
+    },
     { topic: "kulturschock", guest: null },
     { topic: "ki", guest: null },
     { guest: null },

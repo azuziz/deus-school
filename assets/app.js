@@ -197,6 +197,12 @@
     return `${UZ_DAYS[tashkent.getUTCDay()]}, ${tashkent.getUTCDate()}-${UZ_MONTHS[tashkent.getUTCMonth()]}`;
   }
 
+  // A guest note is either plain text or { en, ru, uz, de }.
+  function guestNote(note) {
+    if (note && typeof note === "object") return note[lang] || note.en || "";
+    return note || "";
+  }
+
   function clubUpcoming(s) {
     let date = `<div class="up-when">${blurred("<b>Sonntag, 00. Monat</b><span>00:00 · 00:00</span>", t("club.dateSoon"))}</div>`;
     if (s.when) {
@@ -212,7 +218,7 @@
       : `<h3 class="up-teaser">${blurred("Ein neues Thema, das du lieben wirst", t("club.topicSoon"))}</h3>`;
     const guest = s.guest === false ? ""
       : s.guest
-        ? `<span class="avatar">${esc(s.guest.name.slice(0, 1))}</span><div><b>${esc(s.guest.name)}</b><span>${esc(s.guest.note || "")}</span></div>`
+        ? `<span class="avatar">${esc(s.guest.name.slice(0, 1))}</span><div><b>${esc(s.guest.name)}</b><span>${esc(guestNote(s.guest.note))}</span></div>`
         : `${MYSTERY_AVATAR}<div><b>${esc(t("club.mystery"))}</b><span>${esc(t("club.mystery.d"))}</span></div>`;
     return `<article class="up card${s.topic ? "" : " teaser"}">
       ${date}
