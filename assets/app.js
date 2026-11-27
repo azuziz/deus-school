@@ -188,12 +188,21 @@
     return `<span class="blur" aria-hidden="true">${dummy}</span><span class="soon">${esc(label)}</span>`;
   }
 
+  // Some browsers have no Uzbek date names and print "M11 29, Sun", so the Uzbek date is built by hand.
+  // Tashkent is UTC+5 all year (no daylight saving time).
+  const UZ_MONTHS = ["yanvar", "fevral", "mart", "aprel", "may", "iyun", "iyul", "avgust", "sentabr", "oktabr", "noyabr", "dekabr"];
+  const UZ_DAYS = ["Yakshanba", "Dushanba", "Seshanba", "Chorshanba", "Payshanba", "Juma", "Shanba"];
+  function uzDay(date) {
+    const tashkent = new Date(date.getTime() + 5 * 3600 * 1000);
+    return `${UZ_DAYS[tashkent.getUTCDay()]}, ${tashkent.getUTCDate()}-${UZ_MONTHS[tashkent.getUTCMonth()]}`;
+  }
+
   function clubUpcoming(s) {
     let date = `<div class="up-when">${blurred("<b>Sonntag, 00. Monat</b><span>00:00 · 00:00</span>", t("club.dateSoon"))}</div>`;
     if (s.when) {
       const when = new Date(s.when);
       const at = (timeZone, options) => new Intl.DateTimeFormat(LOCALES[lang] || "en-GB", { timeZone, ...options }).format(when);
-      const day = at("Asia/Tashkent", { weekday: "long", day: "numeric", month: "long" });
+      const day = lang === "uz" ? uzDay(when) : at("Asia/Tashkent", { weekday: "long", day: "numeric", month: "long" });
       const clock = { hour: "2-digit", minute: "2-digit" };
       const times = `${at("Asia/Tashkent", clock)} ${t("club.tz.uz")} · ${at("Europe/Berlin", clock)} ${t("club.tz.de")}`;
       date = `<div class="up-when"><b>${esc(day)}</b><span>${esc(times)}</span></div>`;
@@ -201,13 +210,14 @@
     const topic = s.topic
       ? `<h3>${esc(t(`club.topic.${s.topic}`))}</h3>${T[`club.topic.${s.topic}.d`] ? `<p class="up-desc">${esc(t(`club.topic.${s.topic}.d`))}</p>` : ""}`
       : `<h3 class="up-teaser">${blurred("Ein neues Thema, das du lieben wirst", t("club.topicSoon"))}</h3>`;
-    const guest = s.guest
-      ? `<span class="avatar">${esc(s.guest.name.slice(0, 1))}</span><div><b>${esc(s.guest.name)}</b><span>${esc(s.guest.note || "")}</span></div>`
-      : `${MYSTERY_AVATAR}<div><b>${esc(t("club.mystery"))}</b><span>${esc(t("club.mystery.d"))}</span></div>`;
+    const guest = s.guest === false ? ""
+      : s.guest
+        ? `<span class="avatar">${esc(s.guest.name.slice(0, 1))}</span><div><b>${esc(s.guest.name)}</b><span>${esc(s.guest.note || "")}</span></div>`
+        : `${MYSTERY_AVATAR}<div><b>${esc(t("club.mystery"))}</b><span>${esc(t("club.mystery.d"))}</span></div>`;
     return `<article class="up card${s.topic ? "" : " teaser"}">
       ${date}
       ${topic}
-      <div class="up-guest">${guest}</div>
+      ${guest ? `<div class="up-guest">${guest}</div>` : ""}
       <a class="btn ghost" href="${esc(D.links.channel)}" target="_blank" rel="noopener">${esc(t("club.cta"))}</a>
     </article>`;
   }
